@@ -7,7 +7,6 @@ public class ThreadSafeResource {
         this.type = type;
         this.resourceBuffer = new ResourceType[size];
         resourceBuffer[0] = ResourceType.valueOf(type.toString());
-
     }
 
     public ResourceType get() {
