@@ -8,8 +8,9 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        BeanMaster threadSafeBeanMasterShared = new BeanMaster();
-        threadSafeBeanMasterShared.init();
-        threadSafeBeanMasterShared.makeCoffee(20);
+        Scheduler threadSafeSchedulerShared = new Scheduler();
+        threadSafeSchedulerShared.init();
+        threadSafeSchedulerShared.makeCoffee(20);
+        System.out.println("Scheduler made coffees");
     }
 }
