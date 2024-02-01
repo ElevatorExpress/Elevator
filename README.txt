@@ -6,7 +6,7 @@ Files included:
 ./src/Main.java -> Main class and entry point
 ./src/Scheduler.java -> agent, runs in main thread
 ./src/Floor.java -> runnable class, runs in its own thread(s), tries to grab ingredients from the beanmaster agent
-./src/ThreadSafeResource.java -> class that represents a resource that can be shared between threads, one of each type is held by
+./src/ThreadSafeResourceBuffer.java -> class that represents a resource that can be shared between threads, one of each type is held by
 the beanmaster agent, the actual synchronization is done by the resource itself
 
 ./src/ResourceType.java -> enum that represents the different types of resources

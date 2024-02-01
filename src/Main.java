@@ -7,10 +7,9 @@ public class Main {
     public Main() {
     }
 
-    public static void main(String[] args) {
-        Scheduler threadSafeSchedulerShared = new Scheduler();
-        threadSafeSchedulerShared.init();
-        threadSafeSchedulerShared.makeCoffee(20);
-        System.out.println("Scheduler made coffees");
+    public static void main(String[] args) throws InterruptedException {
+        Scheduler threadSafeSchedulerShared = new Scheduler(20);
+//        ThreadSafeResourceBuffer threadSafeResourceBuffer = new ThreadSafeResourceBuffer(2);
+        threadSafeSchedulerShared.makeCoffee();
     }
 }
