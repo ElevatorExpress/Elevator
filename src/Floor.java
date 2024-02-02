@@ -1,5 +1,9 @@
 import java.util.ArrayList;
 
+/**
+ * Represents the Floor
+ * @author Mayukh Gautam 101181018
+ */
 public class Floor implements Runnable, UtilityInterface<Floor.FloorInfo>{
     private final UtilityInterface<FloorInfo> scheduler;
     private final FloorInfo currentFloorInfo;
@@ -23,7 +27,9 @@ public class Floor implements Runnable, UtilityInterface<Floor.FloorInfo>{
         sendFloorData();
     }
 
-    //
+    /**
+     * Sends this floor's information to the scheduler
+     */
     private void sendFloorData(){
         this.scheduler.put(this.currentFloorInfo);
     }
@@ -36,6 +42,9 @@ public class Floor implements Runnable, UtilityInterface<Floor.FloorInfo>{
     @Override
     public FloorInfo get() {return null;}
 
+    /**
+     * Adds Floor information to this floor's floor information cache
+     */
     @Override
     public synchronized FloorInfo put(FloorInfo fInfo) {
         floorInfoCatcher.add(fInfo);
