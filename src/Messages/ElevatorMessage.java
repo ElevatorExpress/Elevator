@@ -4,6 +4,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+
+
+
+
+
+// if sending a message to the server, the data MUST include the floor request id that it fulfilled. AT MINIMUM!
+
 public record ElevatorMessage<T>(String type, String id, Map<String, T> data, ElevatorSignal signal) implements MessageInterface<T, ElevatorSignal>
 {
 
