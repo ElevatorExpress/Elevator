@@ -1,19 +1,22 @@
+import Messages.MessageInterface;
+
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.UUID;
 
-public class Floor implements Runnable{
+public class Floor implements SubSystem<MessageInterface> {
     private final ResourceType specialtyIngredient;
 
     private final HashMap<ResourceType, ResourceType[]> resourceMap;
 
-    private final ThreadSafeResourceBuffer threadSafeResourceBuffer;
+    private final MessageBuffer messageBuffer;
 
     private int cofeeGoal = 0;
 
     private final UtilityInterface<Integer> coffeeCounter;
 
 
-    public Floor(ResourceType specialtyIngredient, ThreadSafeResourceBuffer threadSafeResourceBuffer, UtilityInterface<Integer> coffeeCounter) {
+    public Floor(ResourceType specialtyIngredient, MessageBuffer messageBuffer, UtilityInterface<Integer> coffeeCounter) {
         this.coffeeCounter = coffeeCounter;
         this.specialtyIngredient = specialtyIngredient;
 
@@ -22,7 +25,7 @@ public class Floor implements Runnable{
         Arrays.stream(ResourceType.values())
                 .filter(type -> type != specialtyIngredient)
                 .forEach(type -> resourceMap.put(type, new ResourceType[]{null}));
-        this.threadSafeResourceBuffer = threadSafeResourceBuffer;
+        this.messageBuffer = messageBuffer;
     }
     public void setCoffeeGoal(int coffeeGoal){
         this.cofeeGoal = coffeeGoal;
@@ -34,7 +37,7 @@ public class Floor implements Runnable{
 //        boolean done = false;
         while (true) {
 
-            ResourceType[] resources = threadSafeResourceBuffer.get(specialtyIngredient);
+            ResourceType[] resources = messageBuffer.get(specialtyIngredient);
             cCounter = coffeeCounter.put(1);
             if (cCounter > cofeeGoal) {
                 break;
@@ -64,4 +67,21 @@ public class Floor implements Runnable{
     }
 
 
+
+    public void receiveMessage(MessageInterface[] messages) {
+        System.out.println("MESSAGEs RECIEVED");
+        for (MessageInterface message : messages) {
+            System.out.println("MESSAGE: " + message);
+        }
+    }
+
+
+    public String[] sendMessage(MessageInterface[] messages) {
+        messageBuffer.put(messages);
+        String [] ids = new String[messages.length];
+        for (int i = 0; i < messages.length; i++) {
+            ids[i] = messages[i].getId();
+        }
+        return ids;
+    }
 }
