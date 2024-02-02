@@ -11,11 +11,10 @@ public class Floor implements Runnable, UtilityInterface<Floor.FloorInfo>{
         scheduler = ownerScheduler;
         floorInfoCatcher = new ArrayList<>();
         /*
-            this.floorInfo = FloorInfo.create( fName | Path );
+            currentFloorInfo = new FloorInfo(Filelocation);
             This method is supposed to create floor info. Read from file.
          */
         // Temp
-        currentFloorInfo = new FloorInfo();
     }
 
     public void run(){
@@ -34,15 +33,13 @@ public class Floor implements Runnable, UtilityInterface<Floor.FloorInfo>{
      * @return null
      */
     @Override
-    public FloorInfo get() {return null;}
+    public FloorInfo get() {return currentFloorInfo;}
 
     @Override
     public synchronized FloorInfo put(FloorInfo fInfo) {
         floorInfoCatcher.add(fInfo);
         return fInfo;
     }
-
-    public record FloorInfo(){}
 
 
 }
