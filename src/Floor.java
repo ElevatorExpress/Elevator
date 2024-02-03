@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 
-public class Floor implements SubSystem<MessageInterface> {
+public class Floor implements SubSystem<MessageInterface<String,String>> {
     private final ResourceType specialtyIngredient;
 
     private final HashMap<ResourceType, ResourceType[]> resourceMap;
@@ -32,51 +32,46 @@ public class Floor implements SubSystem<MessageInterface> {
     }
 
 
-    public void makeCoffee() throws InterruptedException {
-        int cCounter = coffeeCounter.get();
-//        boolean done = false;
-        while (true) {
-
-            ResourceType[] resources = messageBuffer.get(specialtyIngredient);
-            cCounter = coffeeCounter.put(1);
-            if (cCounter > cofeeGoal) {
-                break;
-            }
-            StringBuilder sb = new StringBuilder();
-            for (ResourceType r : resources) {
-                sb.append(r).append(", ");
-            }
-            sb.delete(sb.length() - 2, sb.length());
-
-
-            System.out.println("Floor made coffee number: " + cCounter + " with: " + sb + " from BeanMaster and " + specialtyIngredient + " from " + specialtyIngredient + " Floor");
-
-        }
-    }
+//    public void makeCoffee() throws InterruptedException {
+//        int cCounter = coffeeCounter.get();
+////        boolean done = false;
+//        while (true) {
+//
+//            ResourceType[] resources = messageBuffer.get(specialtyIngredient);
+//            cCounter = coffeeCounter.put(1);
+//            if (cCounter > cofeeGoal) {
+//                break;
+//            }
+//            StringBuilder sb = new StringBuilder();
+//            for (ResourceType r : resources) {
+//                sb.append(r).append(", ");
+//            }
+//            sb.delete(sb.length() - 2, sb.length());
+//
+//
+//            System.out.println("Floor made coffee number: " + cCounter + " with: " + sb + " from BeanMaster and " + specialtyIngredient + " from " + specialtyIngredient + " Floor");
+//
+//        }
+//    }
 
 
 
     public void run(){
-        try {
-            makeCoffee();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
 
 
     }
 
 
 
-    public void receiveMessage(MessageInterface[] messages) {
+    public void receiveMessage(MessageInterface<String,String>[] messages) {
         System.out.println("MESSAGEs RECIEVED");
-        for (MessageInterface message : messages) {
-            System.out.println("MESSAGE: " + message);
+        for (MessageInterface<String,String> message : messages) {
+            System.out.println("MESSAGE: " + message.toString());
         }
     }
 
 
-    public String[] sendMessage(MessageInterface[] messages) {
+    public String[] sendMessage(MessageInterface<String,String>[] messages) {
         messageBuffer.put(messages);
         String [] ids = new String[messages.length];
         for (int i = 0; i < messages.length; i++) {
