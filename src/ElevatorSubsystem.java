@@ -1,5 +1,4 @@
 import Messages.*;
-
 import java.util.*;
 import static java.lang.Math.abs;
 
@@ -18,6 +17,12 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     private MessageInterface<String>[] floorRequestMessages;
     private String elevatorId = UUID.randomUUID().toString();
 
+    /**
+     * Creates the Elevator subsystem and populates the lamps within the elevator car
+     *
+     * @param outboundBuffer The buffer to send signals from elevator to scheduler
+     * @param inboundBuffer The buffer to receive request from the scheduler to the elevator
+     */
     public ElevatorSubsystem(MessageBuffer outboundBuffer, MessageBuffer inboundBuffer) {
         this.outboundBuffer = outboundBuffer;
         this.inboundBuffer = inboundBuffer;
