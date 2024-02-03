@@ -156,7 +156,8 @@ public class Scheduler implements Runnable {
 
     public void serveFloorRequests() {
             //go through idle elevators and assign them to floor requests, add the request to pending floor requests
-            for (String floorRequestId : floorRequestBuffer.keySet()) {
+            String[] floorRequestKeys = floorRequestBuffer.keySet().toArray(new String[0]);
+            for (String floorRequestId : floorRequestKeys) {
                 if (!idleElevators.isEmpty() && !floorRequestBuffer.isEmpty()) {
                     //Get the first avialable elevator
                     String idleElevatorId = idleElevators.keySet().iterator().next();
