@@ -48,13 +48,12 @@ public class FloorSystem implements Runnable, SubSystem<FloorMessage<String>> {
     }
 
     public void run(){
-        // It-1 only one cycle
         prepareAndSendMessage();
+        receiveMessage();
     }
 
     @Override
     public void receiveMessage() {
-        // Do nothing but store for It-1. This is the end of the message chain.
         while (!requestsBuffer.isEmpty()) {
             MessageInterface<?, ?>[] receivedMessages = outboundMessageBuffer.get();
             if (receivedMessages instanceof ElevatorMessage<FloorMessage<String>>[] receivedElevatorMessages){
