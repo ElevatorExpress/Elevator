@@ -1,133 +1,93 @@
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import Messages.ElevatorMessageFactory;
+import Messages.ElevatorSignal;
+import Messages.MessageInterface;
+import Messages.MessageTypes;
 
-public class ElevatorSubsystem implements Runnable {
-    private ResourceType specialtyIngredient; // the ingredient owned by barista
-    private final HashMap<ResourceType, ResourceType[]> resourceMap; // something idk rn
-    private final ThreadSafeResourceBuffer threadSafeResourceBuffer; // the 'counter' (put and get methods)
-    private Map.Entry<Integer, String> lamp ; // some elevator button
+import java.util.*;
 
+import static java.lang.Math.abs;
 
-    public ElevatorSubsystem(ResourceType specialtyIngredient, ThreadSafeResourceBuffer threadSafeResourceBuffer, UtilityInterface<Integer> coffeeCounter) {
-        resourceMap = new HashMap<>();
-        lamp = new AbstractMap.SimpleEntry<>(0, "Off");
-        Arrays.stream(ResourceType.values())
-                .filter(type -> type != specialtyIngredient)
-                .forEach(type -> resourceMap.put(type, new ResourceType[]{null}));
-        this.threadSafeResourceBuffer = threadSafeResourceBuffer;
+public class ElevatorSubsystem implements SubSystem<MessageInterface<String, ElevatorSignal>> {
+
+    private Integer currentFloor = 1;
+    private ElevatorSignal state = ElevatorSignal.IDLE;
+    private MessageBuffer outboundBuffer, inboundBuffer;
+    private HashMap<Integer, String> lamp = new HashMap<>(); // some elevator button
+    private Object taskRequest;
+    private String elevatorId = UUID.randomUUID().toString();
+
+    public ElevatorSubsystem(MessageBuffer outboundBuffer, MessageBuffer inboundBuffer) {
+        this.outboundBuffer = outboundBuffer;
+        this.inboundBuffer = inboundBuffer;
+        populateLamp();
     }
 
-    private void setLamp(Integer floorButton){
-        if (floorButton == null) {
-            lamp = new AbstractMap.SimpleEntry<>(floorButton, "Off");
-        } else {
-            lamp = new AbstractMap.SimpleEntry<>(floorButton, "On");
+    private void populateLamp(){
+        for (int i = 1; i < 23; i++) {
+            lamp.put(i, "off");
         }
-
     }
 
-    /*get work
-        -> does nothing just gets the tasks
-        -> prints "received tasks from scheduler"
+    private void setLamp(Integer levelButton, String state) {
+        lamp.put(levelButton, state);
+    }
+    private void goToSourceFloor() throws InterruptedException {
+        String direction = "down";
+        if (1 - currentFloor > 0) {direction = "up";}
+        // Going to pick up passengers
+        System.out.println("Going "+ "o.getDirection()" + " to floor:" + "o.getFloor()" + "to get passengers");
+        Thread.sleep(100 *  12);
 
-     perform work
-        -> case 0:
-            -> assume starting at floor 0
-                -> is this info held in the lamp (model is stupid but works assuming that elevator always reached floor on the lamp)
-            -> button press scenarios
-                -> button press is the current floor for both elevator and floor button (direction is void in this case)
-                    -> Skip sleep
-                    -> print saying current floor
-                -> button press is a new floor. elevator and floor button are equal (direction must match the dest floor. ie elevator can only go up)
-                    -> set the lamp to on + the floor dest
-                    -> sleep (this is elevator going up)
-                    -> print elevator arrived at floor  (request from floor button and elevator button)
-                -> button is a new floor. elevator and floor button are not equal (direction must match the dest floor. ele go up)
-                    -> set the lamp to on + the floor dest
-                    -> sleep (this is elevator going up)
-                    -> print elevator arrived at floor (request from floor button or elevator button) (do i signal here)
-                    -> sleep (this ele going up)
-                    -> print elevator arrived at floor (request from floor button or elevator button) (I def signal after, but for both or just one)
-        -> case 1:
-            -> starting floor is top floor
-                 -> is this info held in the lamp (model is stupid but works assuming that elevator always reached floor on the lamp)
-                 -> maybe a CONST for top floor???
-            -> button press scenarios
-                -> button press is the current floor for both ele and floor button (direction is void in this case)
-                    -> Skip sleep
-                    -> print saying current floor
-                -> button press is a new floor and ele and floor button are equal (direction must match the dest floor. ie elevator can only go down)
-                    -> set the lamp to on + the floor dest
-                    -> sleep (this is elevator going down)
-                    -> print elevator arrived for both floor and ele button request
-                -> button is a new floor. elevator and floor button are not equal (direction must match the dest floor. ele go down)
-                    -> set the lamp to on + the floor dest
-                    -> sleep (this is elevator going down)
-                    -> print elevator arrived at floor (request from floor button or elevator button) (do i signal here)
-                    -> sleep (this ele going down)
-                    -> print elevator arrived at floor (request from floor button or elevator button) (I def signal after, but for both or just one)
-        -> case 2:
-            -> starting floor is not top or bottom floor
-                 -> is this info held in the lamp (model is stupid but works assuming that elevator always reached floor on the lamp)
-                 -> maybe a CONST for top and bottom floor???
-            -> button press scenarios
-                -> button press is the current floor for both ele and floor(direction is void in this case)
-                    -> Skip sleep
-                    -> print saying current floor
-                -> button press is the current floor for ele but not for floor(direction is floor button direction) (is this possible? can an elevator go somewhere if someone is inside it but gives no input)
-                    -> sleep (ele going up and down)
-                    -> print that ele is arrived at floor button request floor
-                -> button press is a new floor and ele and floor button are equal (direction up or down depending on starting point).
-                    -> set the lamp to on + the floor dest
-                    -> sleep (this is elevator going up or down)
-                    -> print elevator arrived
-                -> button press is a new floor but ele button is direction is opposite of the dest floor. Which way do I go?
-                    -> set the lamp to on + the floor dest
-                    -> sleep (this is elevator going up)
-                    -> print elevator arrived
-     */
-
-    //signal completion
-
-    public void getScheduledWork() throws InterruptedException {
-        // Assuming data validation is already done. i.e no bad data being passed
-        ResourceType[] floorInputData = threadSafeResourceBuffer.get(specialtyIngredient);
-        System.out.println("Received task from Scheduler");
-
-        //return dataStructure
-
+        // signal scheduler
+        // get response to open doors
+        System.out.println("Arrived to floor" + "o.getFloor()");
+        currentFloor = 12;
+        //signal
     }
 
-    // takes in the data structure
-    private void performWork() {
-        /*
-         setLamp(floorInputData.getButton())
-         */
-        System.out.println("Lamp for floor button " + lamp.getKey() + " is " + lamp.getValue());
+    private void goToDestinationFloor() throws InterruptedException {
+        String direction = "off";
+        setLamp(4, "on");
+        if (4 - currentFloor > 0) {direction = "up";}
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("Arrived at ");
-    }
-    public void signalWorkCompletion() throws InterruptedException {
-
+        // Taking passengers to dest floor
+        System.out.println("Going" + direction + "to destination floor:" + "o.getCarButton()");
+        Thread.sleep(100 * abs(4-12));
+        System.out.println("Arrived to floor" + "o.getCarButton()");
+        currentFloor = 4;
     }
 
+    private void signalScheduler() {
+        HashMap<String, Object> workData = new HashMap<>();
+        workData.put("FloorRequestId", taskRequest);
+        MessageInterface[] m = {new ElevatorMessageFactory<>().createElevatorMessage(elevatorId, workData, state)};
+        sendMessage(m);
+    }
+
+    // outbound -> task - shared between scheduler and elevator
+    // get from outbound
+    @Override
+    public void receiveMessage() {
+        taskRequest = inboundBuffer.get();
+    }
+
+    @Override
+    public String[] sendMessage(MessageInterface[] message) {
+        outboundBuffer.put(message);
+        return new String[0];
+    }
+
+    @Override
     public void run(){
+        MessageInterface[] m = new MessageInterface[1];
         try {
-            while (true) { // termination condition??? when does elevator thread die
-                getScheduledWork();
-                performWork();
-                signalWorkCompletion();
-            }
+            signalScheduler();
+            goToSourceFloor();
+            goToDestinationFloor();
+//            sendMessage();
+
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
-
 }
