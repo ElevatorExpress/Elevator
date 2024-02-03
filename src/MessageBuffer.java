@@ -16,7 +16,7 @@ public class MessageBuffer {
         this.messageBuffer = new MessageInterface[size];
     }
 
-    private synchronized int getBufferLength(){
+    public synchronized int getBufferLength(){
         int count = 0;
         for (MessageInterface message : messageBuffer) {
             if (message != null) {
