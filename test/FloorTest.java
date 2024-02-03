@@ -11,7 +11,7 @@ import java.util.Iterator;
 class FloorTest {
 
     static FloorInfoReader reader;
-    static final String[] requestExpected = {"2:432up3", "3:124down2", "5:151up5", "11:152up4", "6:163down1", "7:451up5"};
+    static final String[] requestExpected = {"2:432up3", "3:124down2", "5:151up5", "11:152up4", "6:163down1", "7:451up5", "8:264down2"};
 
     @BeforeAll
     static void createFloorInfoReader(){
