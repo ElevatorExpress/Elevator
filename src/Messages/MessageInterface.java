@@ -7,13 +7,12 @@ import java.util.UUID;
 
 //S is the Signal type
 public interface MessageInterface<T, S> {
-    String id = UUID.randomUUID().toString();
-    String getType();
+    MessageTypes getType();
 
     S getSignal();
 
     Map<String, T> getData();
-    String getId();
+    String getSenderID();
 
     String getMessageId();
 }
