@@ -95,6 +95,9 @@ public class Scheduler implements Runnable {
                         workingElevators.put(message.getSenderID(), message);
                         elevatorRequestBuffer.remove(messageId);
                         MessageInterface origionalFloorRequest = (MessageInterface) pendingElevatorRequests.get(message.getSenderID());
+                        pendingElevatorRequests.remove(message.getSenderID());
+                        pendingFloorRequests.put(origionalFloorRequest.getMessageId(), message);
+//                        floorOutBuffer.put(new MessageInterface[]{message});
                         break;
                     case DONE:
                         //Get completed info
@@ -113,12 +116,12 @@ public class Scheduler implements Runnable {
                             //                 .getSenderID())
                             //         .receiveMessage(new ElevatorMessage[]{completed});
             //
-                            MessageInterface origionalFloorRequest = (MessageInterface) completed.getData().get("Servicing");
-                            String origionalFloorResuestId = origionalFloorRequest.getMessageId();
-                            String origionalFloorId = origionalFloorRequest.getSenderID();
+                            MessageInterface servicedFloorReq = (MessageInterface) completed.getData().get("Servicing");
+                            String servicedFloorReqId = servicedFloorReq.getMessageId();
+                            String servicedFloorFloorId = servicedFloorReq.getSenderID();
 
                             floorOutBuffer.put(new MessageInterface[]{completed});
-                            pendingFloorRequests.remove(origionalFloorResuestId);
+                            pendingFloorRequests.remove(servicedFloorReqId);
                         }
 
                         idleElevators.put(message.getSenderID(), message);
@@ -142,6 +145,8 @@ public class Scheduler implements Runnable {
 
         String[] floorReqKeys = floorRequestBuffer.keySet().toArray(new String[0]);
         String[] idleElevatorKeys = idleElevators.keySet().toArray(new String[0]);
+
+        ArrayList<MessageInterface> elevatorOutMessagePayload = new ArrayList<>();
         for (String floorRequestId : floorReqKeys) {
             if (!idleElevators.isEmpty() && !floorRequestBuffer.isEmpty()) {
                 //Get the first avialable elevator
@@ -153,12 +158,14 @@ public class Scheduler implements Runnable {
 //                workingElevators.put(idleElevatorId, idleElevators.get(idleElevatorId));
                 idleElevators.remove(idleElevatorId);
                 pendingElevatorRequests.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
-                elevatorOutBuffer.put(new MessageInterface[]{floorRequestBuffer.get(floorRequestId)});
+//                elevatorOutBuffer.put(new MessageInterface[]{floorRequestBuffer.get(floorRequestId)});
+                elevatorOutMessagePayload.add(floorRequestBuffer.get(floorRequestId));
                 floorRequestBuffer.remove(floorRequestId);
 
                 // Send it
             }
         }
+        elevatorOutBuffer.put(elevatorOutMessagePayload.toArray(new MessageInterface[0]));
 
 
 
@@ -221,6 +228,7 @@ public class Scheduler implements Runnable {
             readBuffer();
             serveElevatorReqs();
             serveFloorRequests();
+            schedule();
         }
     }
 }

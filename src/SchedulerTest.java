@@ -224,6 +224,7 @@ class SchedulerTest {
         elevatorProducerThread.start();
         scheduler.readBuffer();
         scheduler.serveElevatorReqs();
+        scheduler.schedule();
 
 
         for (MessageInterface fMessage : floorRequests){
