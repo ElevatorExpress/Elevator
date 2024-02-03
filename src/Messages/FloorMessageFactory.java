@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public class FloorMessageFactory<T> {
 
-    public FloorMessage<T> createFloorMessage(String floorID, Map<String, T> data, FloorSignal signal){
+    public FloorMessage<T> createFloorMessage(String floorID, Map<String, T> data, Signal signal){
         return new FloorMessage<>(MessageTypes.FLOOR, floorID, data, signal, UUID.randomUUID().toString());
     }
 

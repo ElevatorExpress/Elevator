@@ -3,8 +3,8 @@ package Messages;
 import java.util.Map;
 import java.util.Objects;
 
-public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<String, T> data, FloorSignal signal,
-                              String id) implements MessageInterface<T, FloorSignal> {
+public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<String, T> data, Signal signal,
+                              String id) implements MessageInterface<T> {
 
     @Override
     public MessageTypes getType() {
@@ -12,7 +12,7 @@ public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<Stri
     }
 
     @Override
-    public FloorSignal getSignal() {
+    public Signal getSignal() {
         return signal;
     }
 
