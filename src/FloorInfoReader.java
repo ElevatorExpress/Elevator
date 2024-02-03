@@ -8,7 +8,7 @@ import java.util.Scanner;
  * @author Joshua Braddon 101182605
  */
 public class FloorInfoReader {
-    //Holds the data from the file
+    //Holds the requests in a list of Data records
     ArrayList<Data> requestQueue = new ArrayList<>();
 
     /**
@@ -18,17 +18,26 @@ public class FloorInfoReader {
     public FloorInfoReader(File requestDetails) {
         Scanner lineGrabber;
         Scanner lineReader;
+        //The information about each request
         ArrayList<String> floorInfo = new ArrayList<>();
         try {
+            //Parses line-by-line
             lineGrabber = new Scanner(requestDetails);
+            //Keeps going until no more lines of text are left
             while(lineGrabber.hasNextLine()) {
+                //Empty the list
                 floorInfo.clear();
+                //Each line will need its own scanner to parse the text, the delimiter will be two spaces
                 lineReader = new Scanner(lineGrabber.nextLine());
                 lineReader.useDelimiter("  ");
 
+                //While there is still text on the line yet to be processed
                 while(lineReader.hasNext()) {
-                    floorInfo.add(lineReader.next());
+                    //Adds the piece of information to the current floor's request Data list
+                    //also trims any extra whitespace
+                    floorInfo.add(lineReader.next().trim());
                 }
+                //Adds the completed request to the request list
                 requestQueue.add(new Data(floorInfo.get(0), floorInfo.get(1), floorInfo.get(2), floorInfo.get(3)));
             }
         } catch (FileNotFoundException e) {
@@ -37,20 +46,20 @@ public class FloorInfoReader {
         }
     }
 
+    /**
+     * Returns an iterator of the requestQueue list
+     * @return the iterator
+     */
     public Iterator<Data> getRequestQueue() {
         return requestQueue.iterator();
     }
 
-//    private void testFileRead() {
-//        for(Data d : requestQueue) {
-//            System.out.println(d.time + " " + d.serviceFloor + " " + d.direction + " " + d.requestFloor);
-//        }
-//    }
+    /**
+     * Record for holding data from elevator service requests
+     * @param time the time of the request
+     * @param serviceFloor the floor the request will be serviced on (where the call button was pressed)
+     * @param direction does the elevator need to travel up or down
+     * @param requestFloor the floor button that will process the request
+     */
     public record Data(String time, String serviceFloor, String direction, String requestFloor) {}
-
-//    public static void main(String[] args) {
-//        FloorInfoReader floorInfoReader = new FloorInfoReader(new File("C:\\Users\\jabra\\Desktop\\ENG year 3\\SYSC 3303\\Group project\\test"));
-//        floorInfoReader.testFileRead();
-//    }
-
 }
