@@ -143,6 +143,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      */
     @Override
     public String[] sendMessage(MessageInterface[] message) {
+        System.out.println("Elevator sending message to scheduler");
         outboundBuffer.put(message);
         return new String[0];
     }
