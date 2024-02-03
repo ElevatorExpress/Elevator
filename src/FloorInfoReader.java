@@ -18,6 +18,7 @@ public class FloorInfoReader {
     public FloorInfoReader(File requestDetails) {
         Scanner lineGrabber;
         Scanner lineReader;
+        int size;
         //The information about each request
         ArrayList<String> floorInfo = new ArrayList<>();
         try {
@@ -36,6 +37,16 @@ public class FloorInfoReader {
                     //Adds the piece of information to the current floor's request Data list
                     //also trims any extra whitespace
                     floorInfo.add(lineReader.next().trim());
+                }
+                //Makes sure the input is correct
+                try {
+                    //If the list is too small throw exception
+                    size = floorInfo.size();
+                    if(size < 4) {
+                        throw new IllegalArgumentException();
+                    }
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Illegal arguments in file");
                 }
                 //Adds the completed request to the request list
                 requestQueue.add(new Data(floorInfo.get(0), floorInfo.get(1), floorInfo.get(2), floorInfo.get(3)));
