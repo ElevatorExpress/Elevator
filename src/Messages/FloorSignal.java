@@ -1,5 +1,5 @@
 package Messages;
 
-enum FloorSignal {
+public enum FloorSignal {
     WORK_REQ, EMERG
 }
