@@ -8,9 +8,9 @@ public class Main {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        NotScheduler threadSafeNotSchedulerShared = new NotScheduler(20);
+//        NotScheduler threadSafeNotSchedulerShared = new NotScheduler(20);
 //        MessageBuffer threadSafeResourceBuffer = new MessageBuffer(2);
-//        threadSafeNotSchedulerShared.makeCoffee();
-        threadSafeNotSchedulerShared.run();
+////        threadSafeNotSchedulerShared.makeCoffee();
+//        threadSafeNotSchedulerShared.run();
     }
 }

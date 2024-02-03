@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 
-public class Floor implements SubSystem<MessageInterface<String,String>> {
+public class Floor implements SubSystem {
     private final ResourceType specialtyIngredient;
 
     private final HashMap<ResourceType, ResourceType[]> resourceMap;
@@ -63,20 +63,37 @@ public class Floor implements SubSystem<MessageInterface<String,String>> {
 
 
 
-    public void receiveMessage(MessageInterface<String,String>[] messages) {
+    public void receiveMessage(MessageInterface[] messages) {
         System.out.println("MESSAGEs RECIEVED");
-        for (MessageInterface<String,String> message : messages) {
+        for (MessageInterface message : messages) {
             System.out.println("MESSAGE: " + message.toString());
         }
     }
 
 
-    public String[] sendMessage(MessageInterface<String,String>[] messages) {
+    public String[] sendMessage(MessageInterface[] messages) {
         messageBuffer.put(messages);
         String [] ids = new String[messages.length];
         for (int i = 0; i < messages.length; i++) {
-            ids[i] = messages[i].getId();
+            ids[i] = messages[i].getMessageId();
         }
         return ids;
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void receiveMessage() {
+
+    }
+
+    /**
+     * @param message
+     * @return
+     */
+    @Override
+    public String[] sendMessage(Object[] message) {
+        return new String[0];
     }
 }

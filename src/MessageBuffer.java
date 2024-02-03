@@ -40,6 +40,10 @@ public class MessageBuffer {
         }
             MessageInterface[] messages = new MessageInterface[getBufferLength()];
             System.arraycopy(messageBuffer, 0, messages, 0, getBufferLength());
+            // null the buffer
+            for (int i = 0; i < messageBuffer.length; i++) {
+                messageBuffer[i] = null;
+            }
             bufferEmpty = true;
             notifyAll();
             return messages;

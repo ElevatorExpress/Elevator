@@ -1,7 +1,7 @@
-import Messages.ElevatorMessage;
-import Messages.MessageInterface;
+import Messages.*;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 
 public class Scheduler implements Runnable {
     private MessageBuffer messageBuffer;
@@ -30,14 +30,17 @@ public class Scheduler implements Runnable {
 
 
 
-    public Scheduler(MessageBuffer messageBuffer, MessageBuffer floorOutBuffer, MessageBuffer elevatorOutBuffer, HashMap<String, SubSystem<MessageInterface>> floorSubscribers, HashMap<String,SubSystem<MessageInterface>> elevatorSubscribers) {
+    public Scheduler(MessageBuffer messageBuffer, MessageBuffer floorOutBuffer, MessageBuffer elevatorOutBuffer) {
         this.messageBuffer = messageBuffer;
 //        this.floorSubscribers = floorSubscribers;
 //        this.elevatorSubscribers = elevatorSubscribers;
         this.floorOutBuffer = floorOutBuffer;
         this.elevatorOutBuffer = elevatorOutBuffer;
-        
-    
+        //generate array of floor requests using MessageFactory
+        ArrayList<MessageInterface> floorRequests = new ArrayList<>();
+
+
+
         
         
     }
@@ -68,37 +71,44 @@ public class Scheduler implements Runnable {
 
         for (String messageId : elevatorRequestBuffer.keySet()) {
             ElevatorMessage message = elevatorRequestBuffer.get(messageId);
-            if (message.getType().equalsIgnoreCase("Elevator")){
-                switch (message.getSignal().toString()) {
-                    case "IDLE":
+            if (message.getType().equals(MessageTypes.ELEVATOR)){
+
+                switch (message.getSignal()) {
+                    case IDLE:
                         //Get current floor and pass it here
-                        idleElevators.put(message.getId(), message);
+                        idleElevators.put(message.getSenderID(), message);
+                        elevatorRequestBuffer.remove(messageId);
                         break;
-                    case "WORKING":
-                        workingElevators.put(message.getId(), message);
+                    case WORKING:
+                        workingElevators.put(message.getSenderID(), message);
+                        elevatorRequestBuffer.remove(messageId);
                         break;
-                    case "DONE":
+                    case DONE:
                         //Get completed info
-                        MessageInterface completed = workingElevators.get(message.getId());
+                        MessageInterface completed = workingElevators.get(message.getSenderID());
+                        workingElevators.remove(message.getSenderID());
                         //get floor requestid from completed data
                         //send completed message to floor
                         if(completed.getData() == null || !completed.getData().containsKey("FloorRequestId")){
                             throw new IllegalArgumentException("Invalid data");
                         }
-                        if(pendingFloorRequests.containsKey(completed.getData().get("FloorRequestId"))){
+                        if(pendingFloorRequests.containsKey(completed.getData().get("Servicing"))){
                             //send completed message to floor
                             // floorSubscribers
                             //         .get(pendingFloorRequests
                             //                 .get(completed.getData().get("FloorRequestId"))
-                            //                 .getId())
+                            //                 .getSenderID())
                             //         .receiveMessage(new ElevatorMessage[]{completed});
-            //              
-//
+            //
+                            MessageInterface origionalFloorRequest = (MessageInterface) completed.getData().get("Servicing");
+                            String origionalFloorResuestId = origionalFloorRequest.getMessageId();
+                            String origionalFloorId = origionalFloorRequest.getSenderID();
+
                             floorOutBuffer.put(new MessageInterface[]{completed});
-                            pendingFloorRequests.remove(completed.getData().get("FloorRequestId"));
+                            pendingFloorRequests.remove(origionalFloorResuestId);
                         }
 
-                        idleElevators.put(message.getId(), message);
+                        idleElevators.put(message.getSenderID(), message);
                         break;
                     default:
                         throw new IllegalArgumentException("Invalid signal");
@@ -113,16 +123,16 @@ public class Scheduler implements Runnable {
     public void readBuffer(){
         MessageInterface[] messages = messageBuffer.get();
         for (MessageInterface message : messages) {
-            if (message.getType().equals("ElevatorRequest")) {
+            if (message.getType().equals(MessageTypes.ELEVATOR)) {
                 //get message and cast to ElevatorMessage
                 try{
                     ElevatorMessage elevatorMessage = (ElevatorMessage) message;
                     elevatorRequestBuffer.put(elevatorMessage.getMessageId(), elevatorMessage);
                 } catch (ClassCastException e){
                     System.err.println("Invalid message type");
-//                    elevatorRequestBuffer.put(message.getId(), message);
+//                    elevatorRequestBuffer.put(message.getSenderID(), message);
                 }
-            } else if (message.getType().equals("FloorRequest")) {
+            } else if (message.getType().equals(MessageTypes.FLOOR)) {
 
                 floorRequestBuffer.put(message.getMessageId(), message);
             }
