@@ -65,8 +65,8 @@ public class Scheduler implements Runnable {
 
 
     public void serveElevatorReqs(){
-
-        for (String messageId : elevatorRequestBuffer.keySet()) {
+        String[] keys = elevatorRequestBuffer.keySet().toArray(new String[0]);
+        for (String messageId : keys) {
             ElevatorMessage message = elevatorRequestBuffer.get(messageId);
             if (message.getType().equalsIgnoreCase("Elevator")){
                 switch (message.getSignal().toString()) {
