@@ -10,7 +10,7 @@ public class FloorMessageFactory<T> {
         return new FloorMessage<>(MessageTypes.FLOOR, floorID, data, signal, UUID.randomUUID().toString());
     }
 
-    private record FloorMessage<T>(MessageTypes messageType, String floorID, Map<String, T> data, FloorSignal signal, String id) implements MessageInterface<T, FloorSignal>{
+    public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<String, T> data, FloorSignal signal, String id) implements MessageInterface<T, FloorSignal>{
 
         @Override
         public MessageTypes getType() {

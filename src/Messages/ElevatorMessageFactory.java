@@ -12,7 +12,7 @@ public class ElevatorMessageFactory<T> {
         return new ElevatorMessage<>(MessageTypes.ELEVATOR, elevatorID, data, signal, UUID.randomUUID().toString());
     }
 
-    private record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Map<String, T> data, ElevatorSignal signal, String id) implements MessageInterface<T, ElevatorSignal>{
+    public record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Map<String, T> data, ElevatorSignal signal, String id) implements MessageInterface<T, ElevatorSignal>{
 
         @Override
         public MessageTypes getType() {
