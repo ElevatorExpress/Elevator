@@ -11,15 +11,29 @@ import java.util.UUID;
 
 // if sending a message to the server, the data MUST include the floor request id that it fulfilled. AT MINIMUM!
 
-public record ElevatorMessage<T>(String type, String id, Map<String, T> data, ElevatorSignal signal) implements MessageInterface<T, ElevatorSignal>
+public class ElevatorMessage<T> implements MessageInterface<T, ElevatorSignal>
 {
+
+    private final MessageTypes messageType;
+    private final String elevatorID;
+    private final Map<String, T> data;
+    private final ElevatorSignal signal;
+    private final String id;
+
+    public ElevatorMessage(MessageTypes messageType, String elevatorID, Map<String, T> data, ElevatorSignal signal){
+        this.messageType = messageType;
+        this.elevatorID = elevatorID;
+        this.data = data;
+        this.signal = signal;
+        this.id = UUID.randomUUID().toString();
+    }
 
     /**
      * @return
      */
     @Override
-    public String getType() {
-        return null;
+    public MessageTypes getType() {
+        return this.messageType;
     }
 
     /**
@@ -27,7 +41,7 @@ public record ElevatorMessage<T>(String type, String id, Map<String, T> data, El
      */
     @Override
     public ElevatorSignal getSignal() {
-        return null;
+        return this.signal;
     }
 
     /**
@@ -35,15 +49,15 @@ public record ElevatorMessage<T>(String type, String id, Map<String, T> data, El
      */
     @Override
     public Map<String, T> getData() {
-        return null;
+        return this.data;
     }
 
     /**
      * @return
      */
     @Override
-    public String getId() {
-        return null;
+    public String getSenderID() {
+        return elevatorID;
     }
 
     /**
@@ -51,7 +65,7 @@ public record ElevatorMessage<T>(String type, String id, Map<String, T> data, El
      */
     @Override
     public String getMessageId() {
-        return null;
+        return id;
     }
 
     /**
@@ -99,7 +113,9 @@ public record ElevatorMessage<T>(String type, String id, Map<String, T> data, El
      */
     @Override
     public boolean equals(Object obj) {
-        return false;
+        if (obj instanceof ElevatorMessage<?> elevatorMessage){
+            return Objects.equals(elevatorMessage.id, id);
+        } return false;
     }
 
     /**
