@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Map<String, T> data,
-                                 ElevatorSignal signal, String id) implements MessageInterface<T, ElevatorSignal> {
+                                 Signal signal, String id) implements MessageInterface<T> {
 
     @Override
     public MessageTypes getType() {
@@ -12,7 +12,7 @@ public record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Ma
     }
 
     @Override
-    public ElevatorSignal getSignal() {
+    public Signal getSignal() {
         return signal;
     }
 

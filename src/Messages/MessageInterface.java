@@ -6,10 +6,10 @@ import java.util.UUID;
 //T is the shape of the payload data
 
 //S is the Signal type
-public interface MessageInterface<T, S> {
+public interface MessageInterface<T> {
     MessageTypes getType();
 
-    S getSignal();
+    Signal getSignal();
 
     Map<String, T> getData();
     String getSenderID();
