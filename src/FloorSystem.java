@@ -1,6 +1,10 @@
-import Messages.*;
+import Messages.FloorMessage;
+import Messages.FloorMessageFactory;
+import Messages.MessageInterface;
+import Messages.Signal;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,7 +30,11 @@ public class FloorSystem implements Runnable, SubSystem<FloorMessage<String>> {
         inboundMessageBuffer = inbound;
         outboundMessageBuffer = outbound;
         requestsBuffer = new HashMap<>();
-        currentFloorInfoReader = new FloorInfoReader(new File("./Floor data.txt"));
+        try {
+            currentFloorInfoReader = new FloorInfoReader(new File("./FloorData.txt"));
+        } catch (FileNotFoundException fileNotFoundException){
+            throw new RuntimeException(fileNotFoundException);
+        }
         createMessages();
     }
 
@@ -58,12 +66,16 @@ public class FloorSystem implements Runnable, SubSystem<FloorMessage<String>> {
         }
     }
 
+    public void startFloorInteractions(){
+        prepareAndSendMessage();
+        receiveMessage();
+    }
+
     /**
      * Runs the thread
      */
     public void run(){
-        prepareAndSendMessage();
-        receiveMessage();
+        startFloorInteractions();
     }
 
     /**
@@ -73,17 +85,16 @@ public class FloorSystem implements Runnable, SubSystem<FloorMessage<String>> {
     @Override
     public void receiveMessage() {
         while (!requestsBuffer.isEmpty()) {
-            MessageInterface<?>[] receivedMessages = outboundMessageBuffer.get();
-            if (receivedMessages instanceof ElevatorMessage<FloorMessage<String>>[] receivedElevatorMessages){
-                for (ElevatorMessage<FloorMessage<String>> elevatorMessages : receivedElevatorMessages) {
-                    String originalRequestID = elevatorMessages.data().get("Servicing").id();
-                    Signal signal = elevatorMessages.getSignal();
-                    if (signal == Signal.DONE){
-                        requestsBuffer.remove(originalRequestID);
-                    }
-                    else if (signal == Signal.WORKING) {/*Nothing Yet*/}
-                    else if (signal == Signal.IDLE) {/*Nothing Yet*/}
+            System.out.println("\n\nMY MAP: " + requestsBuffer + "\n\n");
+            MessageInterface<FloorMessage<String>>[] receivedMessages = outboundMessageBuffer.get();
+            for (MessageInterface<FloorMessage<String>> elevatorMessages : receivedMessages) {
+                String originalRequestID = elevatorMessages.getData().get("Servicing").id();
+                Signal signal = elevatorMessages.getSignal();
+                if (signal == Signal.DONE){
+                    requestsBuffer.remove(originalRequestID);
                 }
+                else if (signal == Signal.WORKING) {/*Nothing Yet*/}
+                else if (signal == Signal.IDLE) {/*Nothing Yet*/}
             }
         }
     }
