@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Scanner;
 
 /**
@@ -8,67 +9,48 @@ import java.util.Scanner;
  */
 public class FloorInfoReader {
     //Holds the data from the file
-    ArrayList<String> floorInfo = new ArrayList<>();
+    ArrayList<Data> requestQueue = new ArrayList<>();
 
     /**
      * Creates a new FloorInfo object using the input file
      * @param requestDetails the input file containing the request
      */
     public FloorInfoReader(File requestDetails) {
+        Scanner lineGrabber;
+        Scanner lineReader;
+        ArrayList<String> floorInfo = new ArrayList<>();
         try {
-            Scanner scanner = new Scanner(requestDetails);
-            //Assigns the values from the file
-            parseFloorInfo(scanner);
+            lineGrabber = new Scanner(requestDetails);
+            while(lineGrabber.hasNextLine()) {
+                floorInfo.clear();
+                lineReader = new Scanner(lineGrabber.nextLine());
+                lineReader.useDelimiter("  ");
+
+                while(lineReader.hasNext()) {
+                    floorInfo.add(lineReader.next());
+                }
+                requestQueue.add(new Data(floorInfo.get(0), floorInfo.get(1), floorInfo.get(2), floorInfo.get(3)));
+            }
         } catch (FileNotFoundException e) {
             System.out.println("File not found");
             throw new RuntimeException(e);
         }
     }
 
-    /**
-     * Parses the input file for values
-     * @param parser the object which will parse the file input
-     */
-    private void parseFloorInfo(Scanner parser) {
-        //Checks for the whitespace between each value
-        parser.useDelimiter("  ");
-        //Fills an arraylist with the values
-        while(parser.hasNext()) {
-            floorInfo.add(parser.next());
-            //System.out.println(parser.next());
-        }
+    public Iterator<Data> getRequestQueue() {
+        return requestQueue.iterator();
     }
 
-    /*
-    public void createCSVFile() throws IOException {
-        File output = new File("Name");
-        FileWriter fileWriter = new FileWriter(output);
-        StringBuilder info = new StringBuilder();
-        for (int i = 0; i < floorInfo.size(); i++) {
-            info.append(floorInfo.get(i));
-            if (i != floorInfo.size() - 1) {
-                info.append("  ");
-            }
-        }
-        info.append("\n");
-        fileWriter.write(info.toString());
-    }*/
+//    private void testFileRead() {
+//        for(Data d : requestQueue) {
+//            System.out.println(d.time + " " + d.serviceFloor + " " + d.direction + " " + d.requestFloor);
+//        }
+//    }
+    private record Data(String time, String serviceFloor, String direction, String requestFloor) {}
 
-
-    public String getTime() {
-        return floorInfo.get(0);
-    }
-
-    public String getServiceFloor() {
-        return floorInfo.get(1);
-    }
-
-    public String getDirection() {
-        return floorInfo.get(2);
-    }
-
-    public String getRequestFloor() {
-        return floorInfo.get(4);
-    }
+//    public static void main(String[] args) {
+//        FloorInfoReader floorInfoReader = new FloorInfoReader(new File("C:\\Users\\jabra\\Desktop\\ENG year 3\\SYSC 3303\\Group project\\test"));
+//        floorInfoReader.testFileRead();
+//    }
 
 }
