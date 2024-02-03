@@ -46,7 +46,7 @@ public class FloorInfoReader {
 //            System.out.println(d.time + " " + d.serviceFloor + " " + d.direction + " " + d.requestFloor);
 //        }
 //    }
-    public record Data(String time, String serviceFloor, String direction, String requestFloor) {}
+    private record Data(String time, String serviceFloor, String direction, String requestFloor) {}
 
 //    public static void main(String[] args) {
 //        FloorInfoReader floorInfoReader = new FloorInfoReader(new File("C:\\Users\\jabra\\Desktop\\ENG year 3\\SYSC 3303\\Group project\\test"));
