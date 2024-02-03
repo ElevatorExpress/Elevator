@@ -4,8 +4,11 @@ import java.util.*;
 import static java.lang.Math.abs;
 
 /**
- * Class ElevatorSubsystem
+ * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
+ * and go to the requested floors to pick up passengers. Once the passengers have been picked up, the elevator will deliver
+ * passengers to the destination floor
  *
+ * @author Yasir Sheikh
  */
 public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
 
@@ -21,7 +24,13 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         populateLamp();
     }
 
-    private void goToSourceFloor(MessageInterface<String> floorRequest) throws InterruptedException {
+    /**
+     * Goes to the floor where the request originated. Picks up passengers
+     *
+     * @param floorRequest The request which is being fulfilled
+     * @throws InterruptedException
+     */
+    private void goToSourceFloor(MessageInterface<String, FloorSignal> floorRequest) throws InterruptedException {
         Integer sourceFloor = Integer.parseInt(floorRequest.getData().get("ServiceFloor"));
         String direction = getDirection(sourceFloor);
 
@@ -31,7 +40,13 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         currentFloor = sourceFloor;
     }
 
-    private void goToDestinationFloor(MessageInterface<String> floorRequest) throws InterruptedException {
+    /**
+     * Sets the lamp Goes to the destination floor where the
+     *
+     * @param floorRequest
+     * @throws InterruptedException
+     */
+    private void goToDestinationFloor(MessageInterface<String, FloorSignal> floorRequest) throws InterruptedException {
         Integer destFloor = Integer.parseInt(floorRequest.getData().get("Floor"));
         setLamp(destFloor, "on");
 
