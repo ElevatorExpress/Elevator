@@ -1,19 +1,18 @@
-import Messages.ElevatorMessageFactory;
-import Messages.ElevatorSignal;
-import Messages.MessageInterface;
-import Messages.MessageTypes;
+import Messages.*;
 
 import java.util.*;
-
 import static java.lang.Math.abs;
 
-public class ElevatorSubsystem implements SubSystem<MessageInterface<String, ElevatorSignal>> {
+/**
+ * Class ElevatorSubsystem
+ *
+ */
+public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
 
     private Integer currentFloor = 1;
-    private ElevatorSignal state = ElevatorSignal.IDLE;
     private MessageBuffer outboundBuffer, inboundBuffer;
-    private HashMap<Integer, String> lamp = new HashMap<>(); // some elevator button
-    private Object taskRequest;
+    private HashMap<Integer, String> lamp = new HashMap<>();
+    private MessageInterface<String>[] floorRequestMessages;
     private String elevatorId = UUID.randomUUID().toString();
 
     public ElevatorSubsystem(MessageBuffer outboundBuffer, MessageBuffer inboundBuffer) {
@@ -22,7 +21,46 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String, Ele
         populateLamp();
     }
 
-    private void populateLamp(){
+    private void goToSourceFloor(MessageInterface<String> floorRequest) throws InterruptedException {
+        Integer sourceFloor = Integer.parseInt(floorRequest.getData().get("ServiceFloor"));
+        String direction = getDirection(sourceFloor);
+
+        System.out.println(floorRequest.getData().get("Time") + ": Going " + direction + " to floor " + sourceFloor + " to get passengers");
+        travelDelay(sourceFloor);
+        System.out.println("Arrived at floor" + sourceFloor);
+        currentFloor = sourceFloor;
+    }
+
+    private void goToDestinationFloor(MessageInterface<String> floorRequest) throws InterruptedException {
+        Integer destFloor = Integer.parseInt(floorRequest.getData().get("Floor"));
+        setLamp(destFloor, "on");
+
+        System.out.println("Elevator car button:" + destFloor + "is" + lamp.get(destFloor));
+        System.out.println("Going" + floorRequest.getData().get("RequestDirection") + "to destination floor:" + destFloor);
+        travelDelay(destFloor);
+        System.out.println("Arrived at floor:" + destFloor);
+
+        currentFloor = destFloor;
+        setLamp(destFloor, "off");
+        signalScheduler(Signal.DONE, floorRequest);
+    }
+
+    private void travelDelay(Integer floor) throws InterruptedException {
+        if (abs(floor - currentFloor) == 1) {
+            // finding distance between floor and calculating time of travel + time of door open and close
+            Thread.sleep((long) (6140 + (1000 * 12.58)));
+        } else {
+            // finding distance between floor and calculating time of travel + time of door open and close
+            Thread.sleep((long) (1000 * ((abs(floor - currentFloor) * 4L / 2.53) + 12.58)));
+        }
+    }
+
+    private String getDirection(Integer arrivalFloor) {
+        if (arrivalFloor - currentFloor > 0) {return "up";}
+        return "down";
+    }
+
+    private void populateLamp() {
         for (int i = 1; i < 23; i++) {
             lamp.put(i, "off");
         }
@@ -31,44 +69,21 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String, Ele
     private void setLamp(Integer levelButton, String state) {
         lamp.put(levelButton, state);
     }
-    private void goToSourceFloor() throws InterruptedException {
-        String direction = "down";
-        if (1 - currentFloor > 0) {direction = "up";}
-        // Going to pick up passengers
-        System.out.println("Going "+ "o.getDirection()" + " to floor:" + "o.getFloor()" + "to get passengers");
-        Thread.sleep(100 *  12);
 
-        // signal scheduler
-        // get response to open doors
-        System.out.println("Arrived to floor" + "o.getFloor()");
-        currentFloor = 12;
-        //signal
+    private void signalScheduler(Signal state, MessageInterface<String> floorRequest) {
+        HashMap<String, MessageInterface<?>> workData = new HashMap<>();
+        workData.put("Servicing", floorRequest);
+        if (state == Signal.IDLE) {
+            workData = null;
+        }
+
+        MessageInterface[] elevatorMessage = {new ElevatorMessageFactory<MessageInterface<?>>().createElevatorMessage(elevatorId, workData, state)};
+        sendMessage(elevatorMessage);
     }
 
-    private void goToDestinationFloor() throws InterruptedException {
-        String direction = "off";
-        setLamp(4, "on");
-        if (4 - currentFloor > 0) {direction = "up";}
-
-        // Taking passengers to dest floor
-        System.out.println("Going" + direction + "to destination floor:" + "o.getCarButton()");
-        Thread.sleep(100 * abs(4-12));
-        System.out.println("Arrived to floor" + "o.getCarButton()");
-        currentFloor = 4;
-    }
-
-    private void signalScheduler() {
-        HashMap<String, Object> workData = new HashMap<>();
-        workData.put("FloorRequestId", taskRequest);
-        MessageInterface[] m = {new ElevatorMessageFactory<>().createElevatorMessage(elevatorId, workData, state)};
-        sendMessage(m);
-    }
-
-    // outbound -> task - shared between scheduler and elevator
-    // get from outbound
     @Override
     public void receiveMessage() {
-        taskRequest = inboundBuffer.get();
+        floorRequestMessages = inboundBuffer.get(); // groups of request at a time
     }
 
     @Override
@@ -79,13 +94,17 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String, Ele
 
     @Override
     public void run(){
-        MessageInterface[] m = new MessageInterface[1];
+        signalScheduler(Signal.IDLE, null);
         try {
-            signalScheduler();
-            goToSourceFloor();
-            goToDestinationFloor();
-//            sendMessage();
-
+            while (true) {
+                receiveMessage();
+                for (MessageInterface<String> floorRequest : floorRequestMessages) {
+                    signalScheduler(Signal.WORKING, floorRequest ); // assuming that get() always returns with request
+                    goToSourceFloor(floorRequest);
+                    goToDestinationFloor(floorRequest);
+                    signalScheduler(Signal.IDLE, floorRequest);
+                }
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
