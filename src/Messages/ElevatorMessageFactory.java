@@ -7,8 +7,13 @@ import java.util.UUID;
 
 public class ElevatorMessageFactory<T> {
 
-    public static ElevatorMessage createElevatorMessage(String elevatorID, Map<String, MessageInterface> data, SubSystemSignals signal){
-        return new ElevatorMessage(MessageTypes.ELEVATOR, elevatorID, data, signal, UUID.randomUUID().toString());
+//<<<<<<< HEAD
+//    public static ElevatorMessage createElevatorMessage(String elevatorID, Map<String, MessageInterface> data, SubSystemSignals signal){
+//        return new ElevatorMessage(MessageTypes.ELEVATOR, elevatorID, data, signal, UUID.randomUUID().toString());
+//=======
+    public ElevatorMessage<T> createElevatorMessage(String elevatorID, Map<String, T> data, Signal signal){
+        return new ElevatorMessage<>(MessageTypes.ELEVATOR, elevatorID, data, signal, UUID.randomUUID().toString());
+//>>>>>>> majorRefac
     }
 
 }

@@ -3,8 +3,10 @@ package Messages;
 import java.util.Map;
 import java.util.Objects;
 
-public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<String, T> data, SubSystemSignals signal,
-                              String id) implements MessageInterface {
+
+public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<String, T> data, Signal signal,
+                              String id) implements MessageInterface<T> {
+
 
     @Override
     public MessageTypes getType() {
@@ -12,7 +14,9 @@ public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<Stri
     }
 
     @Override
-    public SubSystemSignals getSignal() {
+
+    public Signal getSignal() {
+
         return signal;
     }
 
@@ -66,7 +70,6 @@ public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<Stri
      * java.lang.Integer}, and so on), the component is considered
      * equal if and only if {@code
      * PW.compare(this.c, r.c)} would return {@code 0}.
-     *
      * </ul>
      * <p>
      * Apart from the semantics described above, the precise algorithm
