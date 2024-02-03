@@ -54,7 +54,8 @@ public class FloorSystem implements Runnable, SubSystem<FloorMessage<String>> {
     private void prepareAndSendMessage(){
         if (!requestsBuffer.isEmpty()){
             // Ignore unchecked warning, types will always be correct.
-            sendMessage(requestsBuffer.values().toArray(FloorMessage[]::new));
+            FloorMessage<String>[] requests = requestsBuffer.values().toArray(new FloorMessage[0]);
+            sendMessage(requestsBuffer.values().toArray(requests));
         }
     }
 

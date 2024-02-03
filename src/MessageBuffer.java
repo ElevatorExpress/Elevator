@@ -21,6 +21,8 @@ public class MessageBuffer {
         for (MessageInterface message : messageBuffer) {
             if (message != null) {
                 count++;
+            }else{
+                break;
             }
         }
         return count;
