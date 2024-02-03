@@ -6,7 +6,7 @@ import java.util.Scanner;
  * Class for the data structure to process elevator service requests.
  * @author Joshua Braddon 101182605
  */
-public class FloorInfo {
+public class FloorInfoReader {
     //Holds the data from the file
     ArrayList<String> floorInfo = new ArrayList<>();
 
@@ -14,7 +14,7 @@ public class FloorInfo {
      * Creates a new FloorInfo object using the input file
      * @param requestDetails the input file containing the request
      */
-    public FloorInfo(File requestDetails) {
+    public FloorInfoReader(File requestDetails) {
         try {
             Scanner scanner = new Scanner(requestDetails);
             //Assigns the values from the file
@@ -59,21 +59,16 @@ public class FloorInfo {
         return floorInfo.get(0);
     }
 
-    public int getServiceFloor() {
-        return Integer.parseInt(floorInfo.get(1));
+    public String getServiceFloor() {
+        return floorInfo.get(1);
     }
 
-    public boolean isDirection() {
-        String direction = floorInfo.get(2);
-        if(direction.equals("up")) {
-            return true;
-        }
-        else {
-            return false;
-        }
+    public String getDirection() {
+        return floorInfo.get(2);
     }
 
-    public int getRequestFloor() {
-        return Integer.parseInt(floorInfo.get(4));
+    public String getRequestFloor() {
+        return floorInfo.get(4);
     }
+
 }
