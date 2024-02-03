@@ -112,9 +112,6 @@ class SchedulerTest {
 
         Thread elevatorProducerThread = new Thread(() -> {
             try {
-//                for (MessageInterface elevatorReq : elevatorRequests) {
-//                    messageBuffer.put(new MessageInterface[]{elevatorReq});//                }
-
                 messageBuffer.put(
                         elevatorRequests
                 );
@@ -129,10 +126,111 @@ class SchedulerTest {
         scheduler.serveElevatorReqs();
         System.out.println("Floor Out Buffer: " + floorOutBuffer.toString());
 
+        for (MessageInterface eMessage : elevatorRequests){
+            String elevatorId = eMessage.getSenderID();
+            assert(scheduler.getIdleElevators().containsKey(elevatorId));
+            assert (scheduler.getIdleElevators().get(elevatorId).equals(eMessage));
+        }
+
     }
 
     @org.junit.jupiter.api.Test
     void serveFloorRequests() {
+        FloorMessageFactory floorMessageFactory = new FloorMessageFactory();
+        MessageBuffer messageBuffer = new MessageBuffer(20);
+        MessageBuffer floorOutBuffer = new MessageBuffer(10);
+        MessageBuffer elevatorOutBuffer = new MessageBuffer(10);
+        Scheduler scheduler = new Scheduler(messageBuffer, floorOutBuffer, elevatorOutBuffer);
+        MessageInterface[] floorRequests = new MessageInterface[10];
+        for (int i = 0; i < 10; i++) {
+            MessageInterface floorReqs = floorMessageFactory.createFloorMessage(UUID.randomUUID().toString(), null, Signal.WORK_REQ);
+            floorRequests[i] = floorReqs;
+        }
+        System.out.println("Elevator Requests: " + floorRequests);
+        Thread floorProducerThread = new Thread(() -> {
+            try {
+                messageBuffer.put(
+                        floorRequests
+                );
+            } catch (Exception e) {
+                fail("Exception when adding messages to the buffer: " + e.getMessage());
+            }
+        });
+        floorProducerThread.start();
+        scheduler.readBuffer();
+        scheduler.serveFloorRequests();
+        for (MessageInterface fMessage : floorRequests){
+            String floorId = fMessage.getSenderID();
+            assert(scheduler.getFloorRequestBuffer().containsKey(floorId));
+            assert (scheduler.getFloorRequestBuffer().get(floorId).equals(fMessage));
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void testSchedulerAssignsWorkToElevators(){
+
+        FloorMessageFactory floorMessageFactory = new FloorMessageFactory();
+        MessageBuffer messageBuffer = new MessageBuffer(20);
+        MessageBuffer floorOutBuffer = new MessageBuffer(10);
+        MessageBuffer elevatorOutBuffer = new MessageBuffer(10);
+        Scheduler scheduler = new Scheduler(messageBuffer, floorOutBuffer, elevatorOutBuffer);
+
+
+        ElevatorMessageFactory elevatorMessageFactory = new ElevatorMessageFactory();
+
+        MessageInterface[] elevatorRequests = new MessageInterface[10];
+        for (int i = 0; i < 10; i++) {
+            MessageInterface elevatorReq = elevatorMessageFactory.createElevatorMessage(UUID.randomUUID().toString(), null, Signal.IDLE);
+            elevatorRequests[i] = elevatorReq;
+        }
+
+
+        System.out.println("Elevator Requests: " + elevatorRequests);
+
+
+
+        Thread elevatorProducerThread = new Thread(() -> {
+            try {
+                messageBuffer.put(
+                        elevatorRequests
+                );
+            } catch (Exception e) {
+                fail("Exception when adding messages to the buffer: " + e.getMessage());
+            }
+        });
+
+
+        MessageInterface[] floorRequests = new MessageInterface[10];
+        for (int i = 0; i < 10; i++) {
+            MessageInterface floorReqs = floorMessageFactory.createFloorMessage(UUID.randomUUID().toString(), null, Signal.WORK_REQ);
+            floorRequests[i] = floorReqs;
+        }
+
+
+        System.out.println("Elevator Requests: " + floorRequests);
+        Thread floorProducerThread = new Thread(() -> {
+            try {
+                messageBuffer.put(
+                        floorRequests
+                );
+            } catch (Exception e) {
+                fail("Exception when adding messages to the buffer: " + e.getMessage());
+            }
+        });
+
+        floorProducerThread.start();
+        scheduler.readBuffer();
+        scheduler.serveFloorRequests();
+        elevatorProducerThread.start();
+        scheduler.readBuffer();
+        scheduler.serveElevatorReqs();
+
+
+        for (MessageInterface fMessage : floorRequests){
+            String floorId = fMessage.getSenderID();
+            assert(scheduler.getFloorRequestBuffer().containsKey(floorId));
+            assert (scheduler.getFloorRequestBuffer().get(floorId).equals(fMessage));
+        }
     }
 
 

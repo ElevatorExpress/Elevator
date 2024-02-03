@@ -1,5 +1,6 @@
 import Messages.*;
 
+import javax.print.attribute.HashDocAttributeSet;
 import java.util.HashMap;
 import java.util.ArrayList;
 
@@ -23,7 +24,8 @@ public class Scheduler implements Runnable {
 
     //elevator id: ElevatorMessage
     private HashMap<String, MessageInterface> pendingFloorRequests = new HashMap<>();
-  
+
+    private HashMap<String, MessageInterface> pendingElevatorRequests = new HashMap<>();
 
 
 
@@ -65,8 +67,18 @@ public class Scheduler implements Runnable {
 //        return elevatorSubscribers.size();
 //    }
 
-
-
+    public HashMap<String, ElevatorMessage> getIdleElevators() {
+        return idleElevators;
+    }
+    public HashMap<String, ElevatorMessage> getWorkingElevators() {
+        return workingElevators;
+    }
+    public HashMap<String, MessageInterface> getPendingFloorRequests() {
+        return pendingFloorRequests;
+    }
+    public HashMap<String, MessageInterface> getFloorRequestBuffer() {
+        return floorRequestBuffer;
+    }
     public void serveElevatorReqs(){
         String[] keys = elevatorRequestBuffer.keySet().toArray(new String[0]);
         for (String messageId : keys) {
@@ -82,6 +94,7 @@ public class Scheduler implements Runnable {
                     case WORKING:
                         workingElevators.put(message.getSenderID(), message);
                         elevatorRequestBuffer.remove(messageId);
+                        MessageInterface origionalFloorRequest = (MessageInterface) pendingElevatorRequests.get(message.getSenderID());
                         break;
                     case DONE:
                         //Get completed info
@@ -119,6 +132,36 @@ public class Scheduler implements Runnable {
 
 
         }
+
+
+    }
+
+    public void schedule(){
+        //go through idle elevators and assign them to floor requests.
+        //send work request to elevator
+
+        String[] floorReqKeys = floorRequestBuffer.keySet().toArray(new String[0]);
+        String[] idleElevatorKeys = idleElevators.keySet().toArray(new String[0]);
+        for (String floorRequestId : floorReqKeys) {
+            if (!idleElevators.isEmpty() && !floorRequestBuffer.isEmpty()) {
+                //Get the first avialable elevator
+                String idleElevatorId = idleElevators.keySet().iterator().next();
+//                pendingFloorRequests.put(floorRequestId, floorRequestBuffer.get(floorRequestId));
+//                floorRequestBuffer.remove(floorRequestId);
+                //This will likely be an asynchronous call, for threads we'll probably have to wake up the elevator
+//                elevatorSubscribers.get(idleElevatorId).receiveMessage(new MessageInterface[]{floorRequestBuffer.get(floorRequestId)});
+//                workingElevators.put(idleElevatorId, idleElevators.get(idleElevatorId));
+                idleElevators.remove(idleElevatorId);
+                pendingElevatorRequests.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
+                elevatorOutBuffer.put(new MessageInterface[]{floorRequestBuffer.get(floorRequestId)});
+                floorRequestBuffer.remove(floorRequestId);
+
+                // Send it
+            }
+        }
+
+
+
     }
     public void readBuffer(){
         MessageInterface[] messages = messageBuffer.get();
