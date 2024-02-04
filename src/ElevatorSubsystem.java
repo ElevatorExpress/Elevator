@@ -74,10 +74,10 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     private void travelDelay(Integer floor) throws InterruptedException {
         if (abs(floor - currentFloor) == 1) {
             // finding distance between floor and calculating time of travel + time of door open and close
-            Thread.sleep((long) (6140 + (1000 * 12.58)));
+            Thread.sleep((long) (1000));
         } else {
             // finding distance between floor and calculating time of travel + time of door open and close
-            Thread.sleep((long) (1000 * ((abs(floor - currentFloor) * 4L / 2.53) + 12.58)));
+            Thread.sleep((long) (1000));
         }
     }
 

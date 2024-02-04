@@ -27,11 +27,13 @@ public class Main {
 
 
         floorSystemThread.start();
-        TimeUnit.SECONDS.sleep(1);
+//        TimeUnit.SECONDS.sleep(1);
         elevatorSubsystemThread.start();
-        TimeUnit.SECONDS.sleep(1);
+//        TimeUnit.SECONDS.sleep(1);
         schedulerThread.start();
         System.out.println("Threads Started");
-        TimeUnit.SECONDS.sleep(5);
+//        TimeUnit.SECONDS.sleep(5);
+
+
     }
 }
