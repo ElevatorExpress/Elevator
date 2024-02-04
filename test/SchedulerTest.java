@@ -158,12 +158,18 @@ class SchedulerTest {
         });
         floorProducerThread.start();
         scheduler.readBuffer();
-        scheduler.serveFloorRequests();
+
         for (MessageInterface fMessage : floorRequests){
-            String floorId = fMessage.getSenderID();
+            String floorId = fMessage.getMessageId();
             assert(scheduler.getFloorRequestBuffer().containsKey(floorId));
             assert (scheduler.getFloorRequestBuffer().get(floorId).equals(fMessage));
         }
+//        scheduler.serveFloorRequests();
+//        for (MessageInterface fMessage : floorRequests){
+//            String floorId = fMessage.getMessageId();
+//            assert(scheduler.getPendingFloorRequests().containsKey(fMessage.getMessageId()));
+//            assert (scheduler.getPendingFloorRequests().get(floorId).equals(fMessage));
+//        }
     }
 
     @org.junit.jupiter.api.Test
@@ -217,13 +223,22 @@ class SchedulerTest {
                 fail("Exception when adding messages to the buffer: " + e.getMessage());
             }
         });
+        Thread ElevatorConsumerThread = new Thread(() -> {
+            try {
+                messageBuffer.put(
+                        floorRequests
+                );
+            } catch (Exception e) {
+                fail("Exception when adding messages to the buffer: " + e.getMessage());
+            }
+        });
 
-        floorProducerThread.start();
-        scheduler.readBuffer();
-        scheduler.serveFloorRequests();
         elevatorProducerThread.start();
         scheduler.readBuffer();
         scheduler.serveElevatorReqs();
+        scheduler.serveFloorRequests();
+        floorProducerThread.start();
+        scheduler.readBuffer();
         scheduler.serveFloorRequests();
 //        scheduler.schedule();
 //

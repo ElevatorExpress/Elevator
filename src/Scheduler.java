@@ -92,7 +92,8 @@ public class Scheduler implements Runnable {
                         if(message.getData() == null || !message.getData().containsKey("Servicing")){
                             throw new IllegalArgumentException("Invalid data: " + message.getData() + " for message: " + message);
                         }
-                        if(pendingFloorRequests.containsKey(message.getData().get("Servicing"))){
+                        MessageInterface doneFMessage = (MessageInterface) message.getData().get("Servicing");
+                        if(pendingFloorRequests.containsKey(doneFMessage.getMessageId())){
 
                             MessageInterface servicedFloorReq = (MessageInterface) message.getData().get("Servicing");
                             String servicedFloorReqId = servicedFloorReq.getMessageId();
@@ -118,7 +119,7 @@ public class Scheduler implements Runnable {
     }
 
 
-    public void readBuffer(){
+    public int readBuffer(){
         System.out.println("SCHEDULER READING BUFFER");
         MessageInterface[] messages = messageBuffer.get();
         System.out.println("SCHEDULER READ BUFFER");
@@ -128,6 +129,7 @@ public class Scheduler implements Runnable {
                 try{
                     ElevatorMessage elevatorMessage = (ElevatorMessage) message;
                     elevatorRequestBuffer.put(elevatorMessage.getMessageId(), elevatorMessage);
+//                    return 1;
                 } catch (ClassCastException e){
                     System.err.println("Invalid message type");
 
@@ -135,9 +137,10 @@ public class Scheduler implements Runnable {
             } else if (message.getType().equals(MessageTypes.FLOOR)) {
 
                 floorRequestBuffer.put(message.getMessageId(), message);
+//                return 0;
             }
         }
-
+        return 0;
     }
 
 
@@ -192,6 +195,9 @@ public class Scheduler implements Runnable {
 //                    elevatorOutMessagePayload.add(floorRequestBuffer.get(floorRequestId));
 //                    workingElevators.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
                     MessageInterface[] floorRequest = {floorRequestBuffer.get(floorRequestId)};
+                    if(floorRequest[0] == null){
+                        throw new IllegalArgumentException("Invalid floorRequest: " + floorRequest[0] + " for floorRequestId: " + floorRequestId);
+                    }
                     elevatorOutBuffer.put(floorRequest);
                     pendingElevatorRequests.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
                     floorRequestBuffer.remove(floorRequestId);
@@ -209,12 +215,13 @@ public class Scheduler implements Runnable {
 
     public void startSystem(){
 
-        readBuffer();
+//        readBuffer();
         while (true){
 //            if(!messageBuffer.isBufferEmpty()){
 
                 readBuffer();
 //            }
+
             serveElevatorReqs();
             serveFloorRequests();
 //            schedule();
