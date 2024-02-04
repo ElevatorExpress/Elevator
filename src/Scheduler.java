@@ -80,8 +80,8 @@ public class Scheduler implements Runnable {
                         MessageInterface completed = workingElevators.get(message.getSenderID());
                         workingElevators.remove(message.getSenderID());
 
-                        if(completed.getData() == null || !completed.getData().containsKey("FloorRequestId")){
-                            throw new IllegalArgumentException("Invalid data");
+                        if(completed.getData() == null || !completed.getData().containsKey("Servicing")){
+                            throw new IllegalArgumentException("Invalid data: " + completed.getData() + " for message: " + completed);
                         }
                         if(pendingFloorRequests.containsKey(completed.getData().get("Servicing"))){
 
@@ -200,7 +200,10 @@ public class Scheduler implements Runnable {
 
         readBuffer();
         while (true){
-            readBuffer();
+            if(!messageBuffer.isBufferEmpty()){
+
+                readBuffer();
+            }
             serveElevatorReqs();
             serveFloorRequests();
 //            schedule();
