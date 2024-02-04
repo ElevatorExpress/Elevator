@@ -3,19 +3,25 @@ import Messages.MessageInterface;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Data structure to pass messages within the system
+ * @author Connor Beleznay
+ */
 public class MessageBuffer {
 
+    //Starts as empty
     private volatile boolean bufferEmpty = true;
 
-
     private final MessageInterface[] messageBuffer;
-
-//    private final Map<MessageInterface,ResourceType> availableResources = new HashMap<ResourceType,ResourceType>();
 
     public MessageBuffer(int size) {
         this.messageBuffer = new MessageInterface[size];
     }
 
+    /**
+     * Finds the length of the buffer and returns it
+     * @return the length of this buffer
+     */
     public synchronized int getBufferLength(){
         int count = 0;
         for (MessageInterface message : messageBuffer) {
@@ -27,10 +33,19 @@ public class MessageBuffer {
         }
         return count;
     }
+
+    /**
+     * Returns true the buffer is empty false if not
+     * @return if the buffer is empty
+     */
     public boolean isBufferEmpty(){
         return bufferEmpty;
     }
 
+    /**
+     * Gets the contents of the buffer and then clears the buffer
+     * @return the messages inside the buffer
+     */
     public synchronized MessageInterface[] get() {
         while (bufferEmpty) {
             try {
@@ -52,6 +67,10 @@ public class MessageBuffer {
 
     }
 
+    /**
+     * Waits until buffer is available then fills it with messages
+     * @param messages the messages being added to the buffer
+     */
     public synchronized void put(MessageInterface[] messages) {
 
             while (!bufferEmpty) {
@@ -61,7 +80,7 @@ public class MessageBuffer {
                     System.err.println("Producer ERROR: " + e.getMessage());
                 }
             }
-            //There needs to be a check for length
+            //Make sure the buffer is the correct size
             if (messages.length > messageBuffer.length || messages.length + getBufferLength() > messageBuffer.length) {
                 throw new IllegalArgumentException("Message buffer is too small");
             }
