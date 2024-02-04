@@ -26,7 +26,8 @@ public class Main {
         Thread schedulerThread = new Thread(scheduler);
 
 
-//        floorSystemThread.start();
+        floorSystemThread.start();
+        TimeUnit.SECONDS.sleep(1);
         elevatorSubsystemThread.start();
         TimeUnit.SECONDS.sleep(1);
         schedulerThread.start();
