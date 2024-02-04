@@ -63,6 +63,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         currentFloor = destFloor;
         setLamp(destFloor, "off");
         signalScheduler(Signal.DONE, floorRequest);
+        System.out.println("Elevator is done sending");
     }
 
     /**
@@ -125,6 +126,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         }
 
         MessageInterface[] elevatorMessage = {new ElevatorMessageFactory<MessageInterface<?>>().createElevatorMessage(elevatorId, workData, state)};
+        System.out.println("Elevator Signalling message to scheduler");
         sendMessage(elevatorMessage);
     }
 
@@ -165,7 +167,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
                     signalScheduler(Signal.WORKING, floorRequest ); // assuming that get() always returns with request
                     goToSourceFloor(floorRequest);
                     goToDestinationFloor(floorRequest);
-                    signalScheduler(Signal.IDLE, floorRequest);
+//                    signalScheduler(Signal.IDLE, floorRequest);
                 }
             }
         } catch (InterruptedException e) {

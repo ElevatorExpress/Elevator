@@ -80,12 +80,12 @@ public class Scheduler implements Runnable {
                         MessageInterface completed = workingElevators.get(message.getSenderID());
                         workingElevators.remove(message.getSenderID());
 
-                        if(completed.getData() == null || !completed.getData().containsKey("Servicing")){
+                        if(message.getData() == null || !message.getData().containsKey("Servicing")){
                             throw new IllegalArgumentException("Invalid data: " + completed.getData() + " for message: " + completed);
                         }
-                        if(pendingFloorRequests.containsKey(completed.getData().get("Servicing"))){
+                        if(pendingFloorRequests.containsKey(message.getData().get("Servicing"))){
 
-                            MessageInterface servicedFloorReq = (MessageInterface) completed.getData().get("Servicing");
+                            MessageInterface servicedFloorReq = (MessageInterface) message.getData().get("Servicing");
                             String servicedFloorReqId = servicedFloorReq.getMessageId();
                             String servicedFloorFloorId = servicedFloorReq.getSenderID();
 
@@ -110,7 +110,9 @@ public class Scheduler implements Runnable {
 
 
     public void readBuffer(){
+        System.out.println("SCHEDULER READING BUFFER");
         MessageInterface[] messages = messageBuffer.get();
+        System.out.println("SCHEDULER READ BUFFER");
         for (MessageInterface message : messages) {
             if (message.getType().equals(MessageTypes.ELEVATOR)) {
 
@@ -200,10 +202,10 @@ public class Scheduler implements Runnable {
 
         readBuffer();
         while (true){
-            if(!messageBuffer.isBufferEmpty()){
+//            if(!messageBuffer.isBufferEmpty()){
 
                 readBuffer();
-            }
+//            }
             serveElevatorReqs();
             serveFloorRequests();
 //            schedule();
