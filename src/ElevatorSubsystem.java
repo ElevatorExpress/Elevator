@@ -133,7 +133,9 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      */
     @Override
     public void receiveMessage() {
+        System.out.println("Elevator receiving message from scheduler");
         floorRequestMessages = inboundBuffer.get(); // groups of request at a time
+        System.out.println("Elevator received message from scheduler");
     }
 
     /**
@@ -145,6 +147,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     public String[] sendMessage(MessageInterface[] message) {
         System.out.println("Elevator sending message to scheduler");
         outboundBuffer.put(message);
+        System.out.println("Elevator sent message to scheduler");
         return new String[0];
     }
 
@@ -154,6 +157,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     @Override
     public void run(){
         signalScheduler(Signal.IDLE, null);
+        System.out.println("Elevator is idle");
         try {
             while (true) {
                 receiveMessage();
