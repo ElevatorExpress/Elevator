@@ -33,11 +33,6 @@ public class Scheduler implements Runnable {
         this.elevatorOutBuffer = elevatorOutBuffer;
 
         ArrayList<MessageInterface> floorRequests = new ArrayList<>();
-
-
-
-        
-        
     }
 
 
@@ -70,9 +65,23 @@ public class Scheduler implements Runnable {
                     case WORKING:
                         workingElevators.put(message.getSenderID(), message);
                         elevatorRequestBuffer.remove(messageId);
-                        MessageInterface origionalFloorRequest = (MessageInterface) pendingElevatorRequests.get(message.getSenderID());
+
+
+//
+//                        MessageInterface origionalFloorRequest = (MessageInterface) pendingElevatorRequests.get(message.getSenderID());
+//                        pendingElevatorRequests.remove(message.getSenderID());
+//                        pendingFloorRequests.put(origionalFloorRequest.getMessageId(), message);
+                        MessageInterface pendingElevatorReq = pendingElevatorRequests.get(message.getSenderID());
+//                        MessageInterface idleElevator = idleElevators.get(message.getSenderID());
+                        if(pendingElevatorReq == null){
+                            throw new IllegalArgumentException("Invalid pendingElevatorReq: " + pendingElevatorReq + " for message: " + message);
+                        }
+//                        if(idleElevator == null){
+//                            throw new IllegalArgumentException("Invalid idleElevator: " + idleElevator + " for message: " + message);
+//                        }
                         pendingElevatorRequests.remove(message.getSenderID());
-                        pendingFloorRequests.put(origionalFloorRequest.getMessageId(), message);
+
+
                         System.out.println("Elevator " + message.getSenderID() + " is now working");
                         break;
                     case DONE:
@@ -81,7 +90,7 @@ public class Scheduler implements Runnable {
                         workingElevators.remove(message.getSenderID());
 
                         if(message.getData() == null || !message.getData().containsKey("Servicing")){
-                            throw new IllegalArgumentException("Invalid data: " + completed.getData() + " for message: " + completed);
+                            throw new IllegalArgumentException("Invalid data: " + message.getData() + " for message: " + message);
                         }
                         if(pendingFloorRequests.containsKey(message.getData().get("Servicing"))){
 
@@ -89,7 +98,7 @@ public class Scheduler implements Runnable {
                             String servicedFloorReqId = servicedFloorReq.getMessageId();
                             String servicedFloorFloorId = servicedFloorReq.getSenderID();
 
-                            floorOutBuffer.put(new MessageInterface[]{completed});
+                            floorOutBuffer.put(new MessageInterface[]{message});
                             pendingFloorRequests.remove(servicedFloorReqId);
                         }
 
@@ -180,8 +189,8 @@ public class Scheduler implements Runnable {
 //                    elevatorSubscribers.get(idleElevatorId).receiveMessage(new MessageInterface[]{floorRequestBuffer.get(floorRequestId)});
 //                    MessageInterface[] elevatorOutMessagePayload = new MessageInterface[]{pendingFloorRequests.get(floorRequestId)};
 //                    elevatorOutBuffer.put(elevatorOutMessagePayload);
-                    elevatorOutMessagePayload.add(floorRequestBuffer.get(floorRequestId));
-                    workingElevators.put(idleElevatorId, idleElevators.get(idleElevatorId));
+//                    elevatorOutMessagePayload.add(floorRequestBuffer.get(floorRequestId));
+//                    workingElevators.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
                     MessageInterface[] floorRequest = {floorRequestBuffer.get(floorRequestId)};
                     elevatorOutBuffer.put(floorRequest);
                     pendingElevatorRequests.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
