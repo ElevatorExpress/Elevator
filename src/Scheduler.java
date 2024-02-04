@@ -174,7 +174,7 @@ public class Scheduler implements Runnable {
 
                     //This will likely be an asynchronous call, for threads we'll probably have to wake up the elevator
 //                    elevatorSubscribers.get(idleElevatorId).receiveMessage(new MessageInterface[]{floorRequestBuffer.get(floorRequestId)});
-                    MessageInterface[] elevatorOutMessagePayload = new MessageInterface[]{floorRequestBuffer.get(floorRequestId)};
+                    MessageInterface[] elevatorOutMessagePayload = new MessageInterface[]{pendingFloorRequests.get(floorRequestId)};
                     elevatorOutBuffer.put(elevatorOutMessagePayload);
                     workingElevators.put(idleElevatorId, idleElevators.get(idleElevatorId));
                     idleElevators.remove(idleElevatorId);
