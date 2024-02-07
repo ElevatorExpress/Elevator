@@ -5,7 +5,7 @@ Files included:
 ./src/FloorInfoReader.java -> reads input text file and converts them into a queue of requests
 ./src/FloorSystem.java -> tries to grab requests from message buffers and sends confirmation messages to the scheduler
 ./src/MessageBuffer.java -> the synchronized data structure to pass requests between subsystems
-./src/MessageType.java -> enum for differentiating between elevator and floor messages
+./src/Messages/MessageTypes.java -> enum for differentiating between elevator and floor messages
 ./src/Scheduler.java -> processes requests for the floors and elevators
 ./src/SubSystem -> interface which allows threads to read and write to a MessageBuffer
 
