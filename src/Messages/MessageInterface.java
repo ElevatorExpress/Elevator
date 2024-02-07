@@ -3,27 +3,35 @@ package Messages;
 import java.util.Map;
 import java.util.UUID;
 
-//T is the shape of the payload data
-
-//S is the Signal type
+/**
+ * Interface providing methods that are common to all message types.
+ * More details about the message protocol used can be found
+ * <a href="https://github.com/ElevatorExpress/Elevator/wiki/Message-Protocol">here</a>.
+ * @param <T> Generic type representing data to be placed inside a data map
+ */
 public interface MessageInterface<T> {
-
-//>>>>>>> majorRefac
+    /**
+     * @return The type of the message
+     */
     MessageTypes getType();
-//>>>>>>> majorRefac
 
-//<<<<<<< HEAD
-//    SubSystemSignals getSignal();
-//=======
+    /**
+     * @return The new state information inside the message
+     */
     Signal getSignal();
-//>>>>>>> majorRefac
 
+    /**
+     * @return The data contained inside the message
+     */
     Map<String, T> getData();
-//<<<<<<< HEAD
-//    String getId();
-//=======
-    String getSenderID();
-//>>>>>>> majorRefac
 
+    /**
+     * @return The unique ID of the sends of this message
+     */
+    String getSenderID();
+
+    /**
+     * @return The unique ID of this message
+     */
     String getMessageId();
 }

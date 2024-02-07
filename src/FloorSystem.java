@@ -13,7 +13,7 @@ import java.util.Iterator;
  * Represents the Floor
  * @author Mayukh Gautam 101181018
  */
-public class FloorSystem implements Runnable, SubSystem<FloorMessage<String>> {
+public class FloorSystem implements SubSystem<FloorMessage<String>> {
 
     private static final FloorMessageFactory<String> MESSAGE_FACTORY = new FloorMessageFactory<>();
     private final FloorInfoReader currentFloorInfoReader;

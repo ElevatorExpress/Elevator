@@ -3,35 +3,57 @@ package Messages;
 import java.util.Map;
 import java.util.Objects;
 
-
+/**
+ * Represents Messages that are sent by the FloorSystem. This record should only be instanced without a factory if
+ * the id parameter is a random UUID. <br>
+ * More details about the message protocol used can be found
+ * <a href="https://github.com/ElevatorExpress/Elevator/wiki/Message-Protocol">here</a>.
+ * @param messageType The type of the message
+ * @param floorID The sender's unique ID
+ * @param data The data contained inside the message
+ * @param signal The new state information
+ * @param id The unique id of the message
+ * @param <T> Generic type representing data to be placed inside a data map
+ */
 public record FloorMessage<T>(MessageTypes messageType, String floorID, Map<String, T> data, Signal signal,
                               String id) implements MessageInterface<T> {
 
 
+    /**
+     * @return The type of the message
+     */
     @Override
     public MessageTypes getType() {
         return messageType;
     }
 
+    /**
+     * @return The new state information inside the message
+     */
     @Override
-
     public Signal getSignal() {
-
         return signal;
     }
 
+    /**
+     * @return The data contained inside the message
+     */
     @Override
     public Map<String, T> getData() {
         return data;
     }
 
-    //Returns the senders id, ie floor number
+    /**
+     * @return The unique ID of the sends of this message
+     */
     @Override
     public String getSenderID() {
         return floorID;
     }
 
-    //returns the message UUID
+    /**
+     * @return The unique ID of this message
+     */
     @Override
     public String getMessageId() {
         return id;
