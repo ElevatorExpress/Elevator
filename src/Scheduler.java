@@ -1,124 +1,149 @@
 import Messages.*;
 
 import javax.print.attribute.HashDocAttributeSet;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ArrayList;
 
+
+/**
+ * The Scheduler class is responsible for managing elevator and floor requests,
+ * assigning idle elevators to floor requests, and handling elevator status updates.
+ * It implements the Runnable interface to allow it to be executed in a separate thread.
+ * At hte moment it is at risk of circular wait, and needs to be refactored to use semaphores.
+ */
 public class Scheduler implements Runnable {
     private MessageBuffer messageBuffer;
     private MessageBuffer floorOutBuffer;
     private MessageBuffer elevatorOutBuffer;
 
+    // Key is Message ID, Value is the message
+    //Requests are taken from the shared buffer and parsed into the appropriate buffer, these are requests that have yet
+    //to be serviced
     HashMap<String, ElevatorMessage> elevatorRequestBuffer = new HashMap<>();
     private HashMap<String, MessageInterface> floorRequestBuffer = new HashMap<>();
 
-
+    //Key is Elevator/floor ID, Value is the message, store for elevators ready for work
     private HashMap<String, ElevatorMessage> idleElevators = new HashMap<>();
 
+    //Key is Elevator/floor ID, Value is the message, store for elevators currently working
     private HashMap<String, ElevatorMessage> workingElevators = new HashMap<>();
 
+    //Key is Message ID, Value is the message, store for floor requests that are pending
     private HashMap<String, MessageInterface> pendingFloorRequests = new HashMap<>();
 
+    //Key is Message ID, Value is the message, store for elevator requests that are pending
     private HashMap<String, MessageInterface> pendingElevatorRequests = new HashMap<>();
 
 
+    //ToDo: Replace synchronized with semaphores to avoid circular wait.
+    
+    /**
+     * The Scheduler class represents a scheduler in an elevator system.
+     * It is responsible for managing message buffers and handling floor requests.
+     */
+        /**
+         * Constructs a new Scheduler object with the specified message buffers.
+         * 
+         * @param messageBuffer    Shared buffer for incoming messages
+         * @param floorOutBuffer   Shared message buffer for outgoing messages to floors
+         * @param elevatorOutBuffer   Shared message buffer for outgoing messages to elevators
+         */
+        public Scheduler(MessageBuffer messageBuffer, MessageBuffer floorOutBuffer, MessageBuffer elevatorOutBuffer) {
+            this.messageBuffer = messageBuffer;
+            this.floorOutBuffer = floorOutBuffer;
+            this.elevatorOutBuffer = elevatorOutBuffer;
+        }
 
 
 
 
-    public Scheduler(MessageBuffer messageBuffer, MessageBuffer floorOutBuffer, MessageBuffer elevatorOutBuffer) {
-        this.messageBuffer = messageBuffer;
-
-        this.floorOutBuffer = floorOutBuffer;
-        this.elevatorOutBuffer = elevatorOutBuffer;
-
-        ArrayList<MessageInterface> floorRequests = new ArrayList<>();
-    }
-
+    /**
+     *
+     * @return A HashMap containing the idle elevators.
+     */
 
     public HashMap<String, ElevatorMessage> getIdleElevators() {
         return idleElevators;
     }
+
+    /**
+     *
+     * @return A HashMap containing the working elevators.
+     */
     public HashMap<String, ElevatorMessage> getWorkingElevators() {
         return workingElevators;
     }
+
+    /**
+     *
+     * @return A HashMap containing the pending floor requests.
+     */
     public HashMap<String, MessageInterface> getPendingFloorRequests() {
         return pendingFloorRequests;
     }
+
+    /**
+     *
+     * @return A HashMap containing the pending elevator requests.
+     */
     public HashMap<String, MessageInterface> getFloorRequestBuffer() {
         return floorRequestBuffer;
     }
+
+
+    /**
+     * Retrieves messages from the elevatorRequestBuffer, this is called after the messages have been removed from the
+     * shared buffer. Only Scheduler has access to this buffer.
+     * Close requests once they are fulfilled. it is called after thread woken up from wait
+     * and messages are in the buffer.
+     * No params, no return, public for testing purposes
+     */
     public void serveElevatorReqs(){
         String[] keys = elevatorRequestBuffer.keySet().toArray(new String[0]);
         for (String messageId : keys) {
             ElevatorMessage message = elevatorRequestBuffer.get(messageId);
             System.out.println("Elevator Request: " + message);
             if (message.getType().equals(MessageTypes.ELEVATOR)){
-
                 switch (message.getSignal()) {
                     case IDLE:
-
                         idleElevators.put(message.getSenderID(), message);
                         elevatorRequestBuffer.remove(messageId);
                         System.out.println("Elevator " + message.getSenderID() + " is now idle");
                         break;
                     case WORKING:
+                        //USES Sender ID as KEY
                         workingElevators.put(message.getSenderID(), message);
-                        elevatorRequestBuffer.remove(messageId);
-
-
-//
-//                        MessageInterface origionalFloorRequest = (MessageInterface) pendingElevatorRequests.get(message.getSenderID());
-//                        pendingElevatorRequests.remove(message.getSenderID());
-//                        pendingFloorRequests.put(origionalFloorRequest.getMessageId(), message);
-                        MessageInterface pendingElevatorReq = pendingElevatorRequests.get(message.getSenderID());
-//                        MessageInterface idleElevator = idleElevators.get(message.getSenderID());
-                        if(pendingElevatorReq == null){
-                            throw new IllegalArgumentException("Invalid pendingElevatorReq: " + pendingElevatorReq + " for message: " + message);
-                        }
-//                        if(idleElevator == null){
-//                            throw new IllegalArgumentException("Invalid idleElevator: " + idleElevator + " for message: " + message);
-//                        }
-                        pendingElevatorRequests.remove(message.getSenderID());
-
-
                         System.out.println("Elevator " + message.getSenderID() + " is now working");
                         break;
                     case DONE:
                         System.out.println("Elevator " + message.getSenderID() + " is now done");
-                        MessageInterface completed = workingElevators.get(message.getSenderID());
                         workingElevators.remove(message.getSenderID());
-
                         if(message.getData() == null || !message.getData().containsKey("Servicing")){
                             throw new IllegalArgumentException("Invalid data: " + message.getData() + " for message: " + message);
                         }
+                        //values associated with servicing is the origional message that was sent to the elevator
                         MessageInterface doneFMessage = (MessageInterface) message.getData().get("Servicing");
-                        if(pendingFloorRequests.containsKey(doneFMessage.getMessageId())){
-
-                            MessageInterface servicedFloorReq = (MessageInterface) message.getData().get("Servicing");
-                            String servicedFloorReqId = servicedFloorReq.getMessageId();
-                            String servicedFloorFloorId = servicedFloorReq.getSenderID();
-
-                            floorOutBuffer.put(new MessageInterface[]{message});
-                            pendingFloorRequests.remove(servicedFloorReqId);
+                        String completedFloorReqID = doneFMessage.getMessageId();
+                        if(pendingFloorRequests.containsKey(completedFloorReqID)){
+                            pendingFloorRequests.remove(completedFloorReqID);
                         }
-
+                        floorOutBuffer.put(new MessageInterface[]{message});
                         idleElevators.put(message.getSenderID(), message);
                         break;
                     default:
                         throw new IllegalArgumentException("Invalid signal");
                 }
             }
-
-
-
-
         }
-
-
     }
 
 
+    /**
+     * Retrieves messages from the shared buffer and parses them into the appropriate buffer.
+     * This is called after the thread is woken up from wait and messages are in the buffer.
+     * No params, no return, public for testing purposes
+     */
     public int readBuffer(){
         System.out.println("SCHEDULER READING BUFFER");
         MessageInterface[] messages = messageBuffer.get();
@@ -129,7 +154,6 @@ public class Scheduler implements Runnable {
                 try{
                     ElevatorMessage elevatorMessage = (ElevatorMessage) message;
                     elevatorRequestBuffer.put(elevatorMessage.getMessageId(), elevatorMessage);
-//                    return 1;
                 } catch (ClassCastException e){
                     System.err.println("Invalid message type");
 
@@ -137,7 +161,6 @@ public class Scheduler implements Runnable {
             } else if (message.getType().equals(MessageTypes.FLOOR)) {
 
                 floorRequestBuffer.put(message.getMessageId(), message);
-//                return 0;
             }
         }
         return 0;
@@ -145,35 +168,13 @@ public class Scheduler implements Runnable {
 
 
 
-//    public void schedule(){
-//        //go through idle elevators and assign them to floor requests.
-//        //send work request to elevator
-//
-//        String[] floorReqKeys = floorRequestBuffer.keySet().toArray(new String[0]);
-//        String[] idleElevatorKeys = idleElevators.keySet().toArray(new String[0]);
-//
-//        if (idleElevators.isEmpty() || floorRequestBuffer.isEmpty()) {
-//
-//            ArrayList<MessageInterface> elevatorOutMessagePayload = new ArrayList<>();
-//            for (String floorRequestId : floorReqKeys) {
-//                if (!idleElevators.isEmpty() && !floorRequestBuffer.isEmpty()) {
-//
-//                    String idleElevatorId = idleElevators.keySet().iterator().next();
-//
-//                    pendingElevatorRequests.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
-//
-//                    elevatorOutMessagePayload.add(.get(floorRequestId));
-//                    idleElevators.remove(idleElevatorId);
-//                    floorRequestBuffer.remove(floorRequestId);
-//
-//                }
-//            }
-//            elevatorOutBuffer.put(elevatorOutMessagePayload.toArray(new MessageInterface[0]));
-//        }
-//
-//
-//
-//    }
+    /**
+     * Assigns idle elevators to floor requests and adds the request to pending floor requests.
+     * Pending floor requests are ones that are in the process of being serviced, they
+     * will have a counterpart "working elevator"
+     *
+     * No params, no return, public for testing purposes
+     */
 
     public void serveFloorRequests() {
             //go through idle elevators and assign them to floor requests, add the request to pending floor requests
@@ -181,54 +182,25 @@ public class Scheduler implements Runnable {
             ArrayList<MessageInterface> elevatorOutMessagePayload = new ArrayList<>();
             for (String floorRequestId : floorRequestKeys) {
                 if (!idleElevators.isEmpty() && !floorRequestBuffer.isEmpty()) {
-                    //Get the first avialable elevator
                     String idleElevatorId = idleElevators.keySet().iterator().next();
-
                     pendingFloorRequests.put(floorRequestId, floorRequestBuffer.get(floorRequestId));
-
-
-
-                    //This will likely be an asynchronous call, for threads we'll probably have to wake up the elevator
-//                    elevatorSubscribers.get(idleElevatorId).receiveMessage(new MessageInterface[]{floorRequestBuffer.get(floorRequestId)});
-//                    MessageInterface[] elevatorOutMessagePayload = new MessageInterface[]{pendingFloorRequests.get(floorRequestId)};
-//                    elevatorOutBuffer.put(elevatorOutMessagePayload);
-//                    elevatorOutMessagePayload.add(floorRequestBuffer.get(floorRequestId));
-//                    workingElevators.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
-                    MessageInterface[] floorRequest = {floorRequestBuffer.get(floorRequestId)};
+                    MessageInterface[] floorRequest = {pendingFloorRequests.get(floorRequestId)};
                     if(floorRequest[0] == null){
                         throw new IllegalArgumentException("Invalid floorRequest: " + floorRequest[0] + " for floorRequestId: " + floorRequestId);
                     }
-                    elevatorOutBuffer.put(floorRequest);
-                    pendingElevatorRequests.put(idleElevatorId, floorRequestBuffer.get(floorRequestId));
+                    elevatorOutMessagePayload.addAll(Arrays.stream(floorRequest).toList());
                     floorRequestBuffer.remove(floorRequestId);
                     idleElevators.remove(idleElevatorId);
-
-
-
-                    // Send it
                 }
             }
-
+            elevatorOutBuffer.put(elevatorOutMessagePayload.toArray(new MessageInterface[0]));
         }
-
-
-
     public void startSystem(){
-
-//        readBuffer();
         while (true){
-//            if(!messageBuffer.isBufferEmpty()){
-
-                readBuffer();
-//            }
-
+            readBuffer();
             serveElevatorReqs();
             serveFloorRequests();
-//            schedule();
         }
-//        serveElevatorReqs();
-//        serveFloorRequests();
-//        schedule();
     }
 
     /**
