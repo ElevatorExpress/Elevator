@@ -11,11 +11,16 @@ public class MessageBuffer {
 
     //Starts as empty
     private volatile boolean bufferEmpty = true;
+    String bufferName;
+    private volatile int bufferLength = 0;
+
 
     private final MessageInterface[] messageBuffer;
 
-    public MessageBuffer(int size) {
+    public MessageBuffer(int size,String bufferName) {
+
         this.messageBuffer = new MessageInterface[size];
+        this.bufferName = bufferName;
     }
 
     /**
@@ -47,17 +52,23 @@ public class MessageBuffer {
      * @return the messages inside the buffer
      */
     public synchronized MessageInterface[] get() {
-        while (bufferEmpty) {
+        while (bufferLength < 1) {
             try {
-//                notifyAll();
+                System.out.println("Buffer is empty: " + Thread.currentThread().getName() + " " + bufferName);
                 wait();
+                System.out.println("Buffer is empty After Wait" + Thread.currentThread().getName() + " " + bufferName);
             } catch (InterruptedException e) {
                 System.err.println("Producer ERROR: " + e.getMessage());
             }
         }
-            MessageInterface[] messages = new MessageInterface[getBufferLength()];
-            System.arraycopy(messageBuffer, 0, messages, 0, getBufferLength());
+            MessageInterface[] messages = new MessageInterface[bufferLength];
+            System.arraycopy(messageBuffer, 0, messages, 0, bufferLength);
+            // null the buffer
+            for (int i = 0; i < bufferLength; i++) {
+                messageBuffer[i] = null;
+            }
             bufferEmpty = true;
+            bufferLength = 0;
             notifyAll();
             return messages;
 
@@ -68,21 +79,23 @@ public class MessageBuffer {
      * @param messages the messages being added to the buffer
      */
     public synchronized void put(MessageInterface[] messages) {
-
-            while (!bufferEmpty) {
+            while (bufferLength + messages.length > messageBuffer.length){
                 try {
+                    System.out.println("Buffer is full " + Thread.currentThread().getName() + " " + bufferName);
                     wait();
+                    System.out.println("Buffer is full AfterWait " + Thread.currentThread().getName() + " " + bufferName);
                 } catch (InterruptedException e) {
                     System.err.println("Producer ERROR: " + e.getMessage());
                 }
             }
             //Make sure the buffer is the correct size
-            if (messages.length > messageBuffer.length || messages.length + getBufferLength() > messageBuffer.length) {
-                throw new IllegalArgumentException("Message buffer is too small");
+            if (messages.length > messageBuffer.length || messages.length + bufferLength > messageBuffer.length) {
+                throw new IllegalArgumentException("Message buffer is too small ");
             }
 
-            System.arraycopy(messages, getBufferLength(), messageBuffer, 0, messages.length);
-            bufferEmpty = false;
+        System.arraycopy(messages, 0, messageBuffer, bufferLength, messages.length);
+        bufferLength += messages.length;
+        bufferEmpty = false;
             notifyAll();
     }
 

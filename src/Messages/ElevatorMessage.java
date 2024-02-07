@@ -3,6 +3,19 @@ package Messages;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Represents Messages that are sent by Elevators. This record should only be instanced without a factory if
+ * the id parameter is a random UUID. Data must contain at least the original FloorMessage currently being fulfilled by
+ * the elevator sending this message.
+ * More details about the message protocol used can be found
+ * <a href="https://github.com/ElevatorExpress/Elevator/wiki/Message-Protocol">here</a>.
+ * @param messageType The type of the message
+ * @param elevatorID The sender's unique ID
+ * @param data The data contained inside the message. Data must contain the original FloorMessage currently being fulfilled by this elevator
+ * @param signal The new state information
+ * @param id The unique id of the message
+ * @param <T> Generic type representing data to be placed inside a data map.
+ */
 public record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Map<String, T> data,
                                  Signal signal, String id) implements MessageInterface<T> {
 
