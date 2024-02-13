@@ -13,6 +13,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
 
     private Integer currentFloor = 1;
     private MessageBuffer outboundBuffer, inboundBuffer;
+    private ElevatorButtonPanel buttons;
     private HashMap<Integer, String> lamp = new HashMap<>();
     private MessageInterface<String>[] floorRequestMessages;
     private String elevatorId = UUID.randomUUID().toString();
@@ -26,7 +27,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     public ElevatorSubsystem(MessageBuffer outboundBuffer, MessageBuffer inboundBuffer) {
         this.outboundBuffer = outboundBuffer;
         this.inboundBuffer = inboundBuffer;
-        populateLamp();
+        buttons = new ElevatorButtonPanel(22);
     }
 
     /**
@@ -36,10 +37,13 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      * @throws InterruptedException
      */
     private void goToSourceFloor(MessageInterface<String> floorRequest) throws InterruptedException {
+        //Gets the floor needed
         Integer sourceFloor = Integer.parseInt(floorRequest.getData().get("ServiceFloor"));
+        //Picks the direction of travel
         String direction = getDirection(sourceFloor);
 
         System.out.println(floorRequest.getData().get("Time") + " : Going " + direction + " to floor " + sourceFloor + " to get passengers");
+        //The delay it takes to move floors
         travelDelay(sourceFloor);
         System.out.println("Arrived at floor" + sourceFloor);
         currentFloor = sourceFloor;
@@ -52,16 +56,19 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      * @throws InterruptedException
      */
     private void goToDestinationFloor(MessageInterface<String> floorRequest) throws InterruptedException {
+        //Grab the floor that needs to be traveled to
         Integer destFloor = Integer.parseInt(floorRequest.getData().get("Floor"));
-        setLamp(destFloor, "on");
+        buttons.turnOnButton(destFloor);
 
         System.out.println("Elevator car button:" + destFloor + "is" + lamp.get(destFloor));
         System.out.println("Going" + floorRequest.getData().get("RequestDirection") + "to destination floor:" + destFloor);
+        //Delay to travel between floors
         travelDelay(destFloor);
         System.out.println("Arrived at floor:" + destFloor);
 
+        //Once the elevator arrives update state information
         currentFloor = destFloor;
-        setLamp(destFloor, "off");
+        buttons.turnOffButton(destFloor);
         signalScheduler(Signal.DONE, floorRequest);
         System.out.println("Elevator is done sending");
     }
@@ -94,25 +101,6 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     }
 
     /**
-     * Fills all the car buttons with corresponding values and states (off).
-     */
-    private void populateLamp() {
-        for (int i = 1; i < 23; i++) {
-            lamp.put(i, "off");
-        }
-    }
-
-    /**
-     * Turns the lamp on/off for the destination button pressed.
-     *
-     * @param levelButton The floor number pressed
-     * @param state The next state of the lamp
-     */
-    private void setLamp(Integer levelButton, String state) {
-        lamp.put(levelButton, state);
-    }
-
-    /**
      * Sends the scheduler a message containing the request being fulfilled along with the state of the elevator
      *
      * @param state The next state of the elevator
@@ -120,13 +108,14 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      */
     private void signalScheduler(Signal state, MessageInterface<String> floorRequest) {
         HashMap<String, MessageInterface<?>> workData = new HashMap<>();
+        //If the current state of the elevator IDLE there is no request to be done
         workData.put("Servicing", floorRequest);
         if (state == Signal.IDLE) {
             workData = null;
         }
-
+        //If the elevator is working tell the scheduler
         MessageInterface[] elevatorMessage = {new ElevatorMessageFactory<MessageInterface<?>>().createElevatorMessage(elevatorId, workData, state)};
-//        System.out.println("Elevator Signalling message to scheduler");
+        //System.out.println("Elevator Signalling message to scheduler");
         sendMessage(elevatorMessage);
     }
 

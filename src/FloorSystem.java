@@ -30,6 +30,7 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
         inboundMessageBuffer = inbound;
         outboundMessageBuffer = outbound;
         requestsBuffer = new HashMap<>();
+        //If there is input for the file throw an exception and stop
         try {
             currentFloorInfoReader = new FloorInfoReader(new File("./FloorData.txt"));
         } catch (FileNotFoundException fileNotFoundException){
@@ -42,14 +43,17 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
      * Creates messages from an input file.
      */
     private void createMessages(){
+        //Gets the iterator for the arraylist of FloorInfoData
         Iterator<FloorInfoReader.Data> iterator = currentFloorInfoReader.getRequestQueue();
         while (iterator.hasNext()) {
+            //Filling the floorDataMap with the appropriate values
             FloorInfoReader.Data floorData = iterator.next();
             HashMap<String, String> floorDataMap = new HashMap<>();
             floorDataMap.putIfAbsent("Time", floorData.time());
             floorDataMap.putIfAbsent("ServiceFloor", floorData.serviceFloor());
             floorDataMap.putIfAbsent("RequestDirection", floorData.direction());
             floorDataMap.putIfAbsent("Floor", floorData.requestFloor());
+            //Create a request object with the above info
             FloorMessage<String> request =
                     MESSAGE_FACTORY.createFloorMessage(floorData.requestFloor(), floorDataMap, Signal.WORK_REQ);
             requestsBuffer.putIfAbsent(request.id(), request);
@@ -87,13 +91,18 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
     public void receiveMessage() {
         while (!requestsBuffer.isEmpty()) {
             System.out.println("\n\nMY MAP: " + requestsBuffer + "\n\n");
+            //Grab all the messages
             MessageInterface<FloorMessage<String>>[] receivedMessages = outboundMessageBuffer.get();
+            //Look through each message
             for (MessageInterface<FloorMessage<String>> elevatorMessages : receivedMessages) {
                 String originalRequestID = elevatorMessages.getData().get("Servicing").id();
                 Signal signal = elevatorMessages.getSignal();
+                //If the response is a DONE type
                 if (signal == Signal.DONE){
+                    //Removes the request via its id
                     requestsBuffer.remove(originalRequestID);
                 }
+                //A FloorSystem doesn't need to do anything with other message types
                 else if (signal == Signal.WORKING) {/*Nothing Yet*/}
                 else if (signal == Signal.IDLE) {/*Nothing Yet*/}
             }

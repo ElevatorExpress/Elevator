@@ -49,6 +49,7 @@ public class MessageBuffer {
      * @return the messages inside the buffer
      */
     public synchronized MessageInterface[] get() {
+        //Loops until the buffer is not empty
         while (bufferLength < 1) {
             try {
                 System.out.println("Buffer is empty: " + Thread.currentThread().getName() + " " + bufferName);
@@ -58,6 +59,7 @@ public class MessageBuffer {
                 System.err.println("Producer ERROR: " + e.getMessage());
             }
         }
+            //Grabs the messages from the buffer
             MessageInterface[] messages = new MessageInterface[bufferLength];
             System.arraycopy(messageBuffer, 0, messages, 0, bufferLength);
             // null the buffer
