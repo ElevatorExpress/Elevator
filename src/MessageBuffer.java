@@ -1,8 +1,5 @@
 import Messages.MessageInterface;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Data structure to pass messages within the system
  * @author Connor Beleznay
@@ -17,7 +14,7 @@ public class MessageBuffer {
 
     private final MessageInterface[] messageBuffer;
 
-    public MessageBuffer(int size,String bufferName) {
+    public MessageBuffer(int size, String bufferName) {
 
         this.messageBuffer = new MessageInterface[size];
         this.bufferName = bufferName;

@@ -3,13 +3,13 @@
 // (powered by FernFlower decompiler)
 //
 
-import java.util.concurrent.TimeUnit;
+//import java.util.concurrent.TimeUnit;
 
 public class Main {
     public Main() {
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
         MessageBuffer messageBuffer = new MessageBuffer(30, " TO SCHED BUFFER");
         MessageBuffer floorOutBuffer = new MessageBuffer(30, " TO FLOOR BUFFER ");
@@ -25,7 +25,7 @@ public class Main {
 
         elevatorSubsystemThread.start();
         floorSystemThread.start();
-        TimeUnit.SECONDS.sleep(1);
+        //TimeUnit.SECONDS.sleep(1);
         schedulerThread.start();
         System.out.println("Threads Started");
 

@@ -15,8 +15,8 @@ class FloorSystemTest {
 
     @BeforeEach
     void createSystem(){
-        SCH_INBOUND = new MessageBuffer(10);
-        SCH_OUTBOUND = new MessageBuffer(10);
+        SCH_INBOUND = new MessageBuffer(10, "");
+        SCH_OUTBOUND = new MessageBuffer(10, "");
         floorSystem = new FloorSystem(SCH_OUTBOUND, SCH_INBOUND);
     }
 

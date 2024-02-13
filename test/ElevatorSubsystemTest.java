@@ -1,19 +1,15 @@
-import Messages.FloorMessage;
 import Messages.FloorMessageFactory;
 import Messages.MessageInterface;
 import Messages.Signal;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class ElevatorSubsystemTest {
 
-    MessageBuffer sharedBuffer = new MessageBuffer(1);
+    MessageBuffer sharedBuffer = new MessageBuffer(1, "");
     ElevatorSubsystem elevator;
     MessageInterface<String>[] request = new MessageInterface[1];
 

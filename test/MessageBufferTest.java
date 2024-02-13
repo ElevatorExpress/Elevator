@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
-import java.util.Map;
 
 /**
  * Testing MessageBuffer
@@ -21,7 +20,7 @@ class MessageBufferTest {
 
     @BeforeEach
     void setUp() {
-        emptyBuffer = new MessageBuffer(2);
+        emptyBuffer = new MessageBuffer(2, "");
     }
 
     @Test

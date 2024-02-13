@@ -18,7 +18,6 @@ import java.util.Objects;
  */
 public record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Map<String, T> data,
                                  Signal signal, String id) implements MessageInterface<T> {
-
     @Override
     public MessageTypes getType() {
         return messageType;
@@ -77,7 +76,6 @@ public record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Ma
      * java.lang.Integer}, and so on), the component is considered
      * equal if and only if {@code
      * PW.compare(this.c, r.c)} would return {@code 0}.
-     *
      * </ul>
      * <p>
      * Apart from the semantics described above, the precise algorithm
