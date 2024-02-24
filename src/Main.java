@@ -23,7 +23,5 @@ public class Main {
         floorSystemThread.start();
         schedulerThread.start();
         System.out.println("Threads Started");
-
-
     }
 }

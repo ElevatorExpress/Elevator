@@ -2,6 +2,7 @@ import Messages.FloorMessage;
 import Messages.FloorMessageFactory;
 import Messages.MessageInterface;
 import Messages.Signal;
+import util.ElevatorLogger;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,6 +21,7 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
     private final MessageBuffer inboundMessageBuffer;
     private final MessageBuffer outboundMessageBuffer;
     private final HashMap<String, FloorMessage<String>> requestsBuffer;
+    private static final ElevatorLogger logger = new ElevatorLogger("FloorSystem");
 
     /**
      * Creates the FloorSystem
@@ -90,7 +92,6 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
     @Override
     public void receiveMessage() {
         while (!requestsBuffer.isEmpty()) {
-            System.out.println("\n\nMY MAP: " + requestsBuffer + "\n\n");
             //Grab all the messages
             MessageInterface<FloorMessage<String>>[] receivedMessages = outboundMessageBuffer.get();
             //Look through each message
@@ -100,7 +101,9 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
                 //If the response is a DONE type
                 if (signal == Signal.DONE){
                     //Removes the request via its id
+                    logger.info("Checking if completed: " + elevatorMessages);
                     requestsBuffer.remove(originalRequestID);
+                    logger.info("Confirmed completed removing from internal list");
                 }
                 //A FloorSystem doesn't need to do anything with other message types
                 else if (signal == Signal.WORKING) {/*Nothing Yet*/}

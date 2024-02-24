@@ -1,5 +1,11 @@
-import Messages.*;
-import java.util.*;
+import Messages.ElevatorMessageFactory;
+import Messages.MessageInterface;
+import Messages.Signal;
+import util.ElevatorLogger;
+
+import java.util.HashMap;
+import java.util.UUID;
+
 import static java.lang.Math.abs;
 
 /**
@@ -14,9 +20,9 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     private Integer currentFloor = 1;
     private MessageBuffer outboundBuffer, inboundBuffer;
     private ElevatorButtonPanel buttons;
-    private HashMap<Integer, String> lamp = new HashMap<>();
     private MessageInterface<String>[] floorRequestMessages;
     private String elevatorId = UUID.randomUUID().toString();
+    private static final ElevatorLogger logger = new ElevatorLogger("ElevatorSubsystem");
 
     /**
      * Creates the Elevator subsystem and populates the lamps within the elevator car
@@ -41,11 +47,10 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         Integer sourceFloor = Integer.parseInt(floorRequest.getData().get("ServiceFloor"));
         //Picks the direction of travel
         String direction = getDirection(sourceFloor);
-
-        System.out.println(floorRequest.getData().get("Time") + " : Going " + direction + " to floor " + sourceFloor + " to get passengers");
+        logger.info(floorRequest.getData().get("Time") + " : Going " + direction + " to floor " + sourceFloor + " to get passengers");
         //The delay it takes to move floors
         travelDelay(sourceFloor);
-        System.out.println("Arrived at floor" + sourceFloor);
+        logger.info("Arrived at floor" + sourceFloor);
         currentFloor = sourceFloor;
     }
 
@@ -60,17 +65,16 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         Integer destFloor = Integer.parseInt(floorRequest.getData().get("Floor"));
         buttons.turnOnButton(destFloor);
 
-        System.out.println("Elevator car button:" + destFloor + "is" + lamp.get(destFloor));
-        System.out.println("Going" + floorRequest.getData().get("RequestDirection") + "to destination floor:" + destFloor);
+        logger.info("Going" + floorRequest.getData().get("RequestDirection") + "to destination floor:" + destFloor);
         //Delay to travel between floors
         travelDelay(destFloor);
-        System.out.println("Arrived at floor:" + destFloor);
+        logger.info("Arrived at floor:" + destFloor);
 
         //Once the elevator arrives update state information
         currentFloor = destFloor;
         buttons.turnOffButton(destFloor);
         signalScheduler(Signal.DONE, floorRequest);
-        System.out.println("Elevator is done sending");
+        logger.info("Elevator is done sending");
     }
 
     /**
@@ -115,7 +119,6 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         }
         //If the elevator is working tell the scheduler
         MessageInterface[] elevatorMessage = {new ElevatorMessageFactory<MessageInterface<?>>().createElevatorMessage(elevatorId, workData, state)};
-        //System.out.println("Elevator Signalling message to scheduler");
         sendMessage(elevatorMessage);
     }
 
@@ -124,9 +127,9 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      */
     @Override
     public void receiveMessage() {
-        System.out.println("Elevator receiving message from scheduler");
+        logger.info("Elevator receiving message from scheduler");
         floorRequestMessages = inboundBuffer.get(); // groups of request at a time
-        System.out.println("Elevator received message from scheduler");
+        logger.info("Elevator received message from scheduler");
     }
 
     /**
@@ -136,9 +139,9 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      */
     @Override
     public String[] sendMessage(MessageInterface[] message) {
-        System.out.println("Elevator sending message to scheduler");
+        logger.info("Elevator sending message to scheduler");
         outboundBuffer.put(message);
-        System.out.println("Elevator sent message to scheduler");
+        logger.info("Elevator sent message to scheduler");
         return new String[0];
     }
 
@@ -148,7 +151,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     @Override
     public void run(){
         signalScheduler(Signal.IDLE, null);
-        System.out.println("Elevator is idle");
+        logger.info("Elevator is idle");
         try {
             while (true) {
                 receiveMessage();
@@ -156,7 +159,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
                     if (floorRequest == null) {
                         throw new IllegalArgumentException("Invalid floorRequest: " + floorRequest);
                     }
-                    System.out.println("Elevator received request from scheduler: " + floorRequest);
+                    logger.info("Elevator received request from scheduler: " + floorRequest);
                     signalScheduler(Signal.WORKING, floorRequest ); // assuming that get() always returns with request
                     goToSourceFloor(floorRequest);
                     goToDestinationFloor(floorRequest);

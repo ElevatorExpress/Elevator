@@ -52,9 +52,7 @@ public class MessageBuffer {
         //Loops until the buffer is not empty
         while (bufferLength < 1) {
             try {
-                System.out.println("Buffer is empty: " + Thread.currentThread().getName() + " " + bufferName);
                 wait();
-                System.out.println("Buffer is empty After Wait" + Thread.currentThread().getName() + " " + bufferName);
             } catch (InterruptedException e) {
                 System.err.println("Producer ERROR: " + e.getMessage());
             }
@@ -80,9 +78,7 @@ public class MessageBuffer {
     public synchronized void put(MessageInterface[] messages) {
             while (bufferLength + messages.length > messageBuffer.length){
                 try {
-                    System.out.println("Buffer is full " + Thread.currentThread().getName() + " " + bufferName);
                     wait();
-                    System.out.println("Buffer is full AfterWait " + Thread.currentThread().getName() + " " + bufferName);
                 } catch (InterruptedException e) {
                     System.err.println("Producer ERROR: " + e.getMessage());
                 }
