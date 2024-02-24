@@ -1,6 +1,7 @@
 import Messages.ElevatorMessage;
 import Messages.MessageInterface;
 import Messages.MessageTypes;
+import util.ElevatorLogger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +36,7 @@ public class Scheduler implements Runnable {
 
     //Key is Message ID, Value is the message, store for elevator requests that are pending
     private HashMap<String, MessageInterface> pendingElevatorRequests = new HashMap<>();
+    private static final ElevatorLogger logger = new ElevatorLogger("Scheduler");
 
 
     //ToDo: Replace synchronized with semaphores to avoid circular wait.
@@ -104,21 +106,21 @@ public class Scheduler implements Runnable {
         String[] keys = elevatorRequestBuffer.keySet().toArray(new String[0]);
         for (String messageId : keys) {
             ElevatorMessage message = elevatorRequestBuffer.get(messageId);
-            System.out.println("Elevator Request: " + message);
+            logger.info("Elevator Request: " + message);
             if (message.getType().equals(MessageTypes.ELEVATOR)){
                 switch (message.getSignal()) {
                     case IDLE:
                         idleElevators.put(message.getSenderID(), message);
                         elevatorRequestBuffer.remove(messageId);
-                        System.out.println("Elevator " + message.getSenderID() + " is now idle");
+                        logger.info("Elevator " + message.getSenderID() + " is now idle");
                         break;
                     case WORKING:
                         //USES Sender ID as KEY
                         workingElevators.put(message.getSenderID(), message);
-                        System.out.println("Elevator " + message.getSenderID() + " is now working");
+                        logger.info("Elevator " + message.getSenderID() + " is now working");
                         break;
                     case DONE:
-                        System.out.println("Elevator " + message.getSenderID() + " is now done");
+                        logger.info("Elevator " + message.getSenderID() + " is now done");
                         workingElevators.remove(message.getSenderID());
                         if(message.getData() == null || !message.getData().containsKey("Servicing")){
                             throw new IllegalArgumentException("Invalid data: " + message.getData() + " for message: " + message);
@@ -146,9 +148,9 @@ public class Scheduler implements Runnable {
      * No params, no return, public for testing purposes
      */
     public int readBuffer(){
-        System.out.println("SCHEDULER READING BUFFER");
+        logger.info("SCHEDULER READING BUFFER");
         MessageInterface[] messages = messageBuffer.get();
-        System.out.println("SCHEDULER READ BUFFER");
+        logger.info("SCHEDULER READ BUFFER");
         for (MessageInterface message : messages) {
             if (message.getType().equals(MessageTypes.ELEVATOR)) {
 
@@ -156,7 +158,7 @@ public class Scheduler implements Runnable {
                     ElevatorMessage elevatorMessage = (ElevatorMessage) message;
                     elevatorRequestBuffer.put(elevatorMessage.getMessageId(), elevatorMessage);
                 } catch (ClassCastException e){
-                    System.err.println("Invalid message type");
+                    logger.info("Invalid message type");
 
                 }
             } else if (message.getType().equals(MessageTypes.FLOOR)) {
