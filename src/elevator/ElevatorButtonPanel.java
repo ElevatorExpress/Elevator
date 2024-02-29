@@ -1,3 +1,5 @@
+package elevator;
+
 import java.util.HashMap;
 
 /**

@@ -1,4 +1,6 @@
-import Messages.MessageInterface;
+package util;
+
+import util.Messages.MessageInterface;
 
 /**
  * Data structure to pass messages within the system

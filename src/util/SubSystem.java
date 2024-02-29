@@ -1,8 +1,6 @@
-import Messages.MessageInterface;
+package util;
 
-import java.util.UUID;
-
-public interface SubSystem <T> extends Runnable {
+public interface SubSystem <T> {
 
     /**
      *  This method receives a message from the subsystem and processes it

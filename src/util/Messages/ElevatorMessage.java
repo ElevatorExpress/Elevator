@@ -1,4 +1,4 @@
-package Messages;
+package util.Messages;
 
 import java.util.Map;
 import java.util.Objects;

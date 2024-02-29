@@ -1,7 +1,12 @@
-import Messages.*;
+import floor.FloorSystem;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import util.MessageBuffer;
+import util.Messages.ElevatorMessageFactory;
+import util.Messages.FloorMessage;
+import util.Messages.MessageInterface;
+import util.Messages.Signal;
 
 import java.util.HashMap;
 

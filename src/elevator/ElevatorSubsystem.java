@@ -1,7 +1,11 @@
-import Messages.ElevatorMessageFactory;
-import Messages.MessageInterface;
-import Messages.Signal;
+package elevator;
+
+import util.Messages.ElevatorMessageFactory;
+import util.Messages.MessageInterface;
+import util.Messages.Signal;
 import util.ElevatorLogger;
+import util.MessageBuffer;
+import util.SubSystem;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -9,7 +13,7 @@ import java.util.UUID;
 import static java.lang.Math.abs;
 
 /**
- * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
+ * Class elevator.ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
  * and go to the requested floors to pick up passengers. Once the passengers have been picked up, the elevator will deliver
  * passengers to the destination floor
  *
@@ -22,7 +26,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     private ElevatorButtonPanel buttons;
     private MessageInterface<String>[] floorRequestMessages;
     private String elevatorId = UUID.randomUUID().toString();
-    private static final ElevatorLogger logger = new ElevatorLogger("ElevatorSubsystem");
+    private static final ElevatorLogger logger = new ElevatorLogger("elevator.ElevatorSubsystem");
 
     /**
      * Creates the Elevator subsystem and populates the lamps within the elevator car
@@ -34,6 +38,10 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         this.outboundBuffer = outboundBuffer;
         this.inboundBuffer = inboundBuffer;
         buttons = new ElevatorButtonPanel(22);
+    }
+
+    private ElevatorSubsystem() {
+        this(new MessageBuffer(10, "DummyOut"), new MessageBuffer(10, "DummyIn"));
     }
 
     /**
@@ -148,7 +156,6 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     /**
      * Creates the thread and performs the operations of the elevator
      */
-    @Override
     public void run(){
         signalScheduler(Signal.IDLE, null);
         logger.info("Elevator is idle");
@@ -169,5 +176,11 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void main(String[] args) {
+        //TODO: Rework constructor, message buffers are no longer shared
+        ElevatorSubsystem e = new ElevatorSubsystem(); // DO not use dummy constructor
+        e.run();
     }
 }

@@ -1,7 +1,9 @@
-import Messages.ElevatorMessageFactory;
-import Messages.FloorMessageFactory;
-import Messages.MessageInterface;
-import Messages.Signal;
+import util.Messages.ElevatorMessageFactory;
+import util.Messages.FloorMessageFactory;
+import util.Messages.MessageInterface;
+import util.Messages.Signal;
+import scheduler.Scheduler;
+import util.MessageBuffer;
 
 import java.util.UUID;
 
@@ -11,11 +13,11 @@ class SchedulerTest {
 
 //    @org.junit.jupiter.api.Test
 //    void serveElevatorReqs() {
-//        MessageBuffer messageBuffer = new MessageBuffer(20);
-//        MessageBuffer floorOutBuffer = new MessageBuffer(10);
-//        MessageBuffer elevatorOutBuffer = new MessageBuffer(10);
+//        util.MessageBuffer messageBuffer = new util.MessageBuffer(20);
+//        util.MessageBuffer floorOutBuffer = new util.MessageBuffer(10);
+//        util.MessageBuffer elevatorOutBuffer = new util.MessageBuffer(10);
 //
-//        Scheduler scheduler = new Scheduler(messageBuffer, floorOutBuffer, elevatorOutBuffer);
+//        scheduler.Scheduler scheduler = new scheduler.Scheduler(messageBuffer, floorOutBuffer, elevatorOutBuffer);
 //
 //        //Create an array of floor requests usring the floorMessageFactory
 ////        ArrayList<MessageInterface> floorRequests = new ArrayList<>();

@@ -1,7 +1,6 @@
-package Messages;
+package util.Messages;
 
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Interface providing methods that are common to all message types.

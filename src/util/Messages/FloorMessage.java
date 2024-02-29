@@ -1,10 +1,10 @@
-package Messages;
+package util.Messages;
 
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents Messages that are sent by the FloorSystem. This record should only be instanced without a factory if
+ * Represents Messages that are sent by the floor.FloorSystem. This record should only be instanced without a factory if
  * the id parameter is a random UUID. <br>
  * More details about the message protocol used can be found
  * <a href="https://github.com/ElevatorExpress/Elevator/wiki/Message-Protocol">here</a>.
