@@ -1,8 +1,12 @@
-import Messages.FloorMessage;
-import Messages.FloorMessageFactory;
-import Messages.MessageInterface;
-import Messages.Signal;
+package floor;
+
+import util.Messages.FloorMessage;
+import util.Messages.FloorMessageFactory;
+import util.Messages.MessageInterface;
+import util.Messages.Signal;
 import util.ElevatorLogger;
+import util.MessageBuffer;
+import util.SubSystem;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,12 +25,12 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
     private final MessageBuffer inboundMessageBuffer;
     private final MessageBuffer outboundMessageBuffer;
     private final HashMap<String, FloorMessage<String>> requestsBuffer;
-    private static final ElevatorLogger logger = new ElevatorLogger("FloorSystem");
+    private static final ElevatorLogger logger = new ElevatorLogger("floor.FloorSystem");
 
     /**
-     * Creates the FloorSystem
-     * @param outbound Outbound buffer from the perspective of the scheduler. FloorSystem will read messages from here.
-     * @param inbound Inbound buffer from the perspective of the scheduler. FloorSystem will send messages from here.
+     * Creates the floor.FloorSystem
+     * @param outbound Outbound buffer from the perspective of the scheduler. floor.FloorSystem will read messages from here.
+     * @param inbound Inbound buffer from the perspective of the scheduler. floor.FloorSystem will send messages from here.
      */
     public FloorSystem(MessageBuffer outbound, MessageBuffer inbound) {
         inboundMessageBuffer = inbound;
@@ -39,6 +43,10 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
             throw new RuntimeException(fileNotFoundException);
         }
         createMessages();
+    }
+
+    public FloorSystem() {
+        this(new MessageBuffer(10, "DummyOut"), new MessageBuffer(10, "DummyIn"));
     }
 
     /**
@@ -79,13 +87,6 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
     }
 
     /**
-     * Runs the thread
-     */
-    public void run(){
-        startFloorInteractions();
-    }
-
-    /**
      * Retrieves messages from the scheduler's perspective outbound buffer and interprets them.
      * Close requests once they are fulfilled.
      */
@@ -105,7 +106,7 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
                     requestsBuffer.remove(originalRequestID);
                     logger.info("Confirmed completed removing from internal list");
                 }
-                //A FloorSystem doesn't need to do anything with other message types
+                //A floor.FloorSystem doesn't need to do anything with other message types
                 else if (signal == Signal.WORKING) {/*Nothing Yet*/}
                 else if (signal == Signal.IDLE) {/*Nothing Yet*/}
             }
@@ -122,6 +123,11 @@ public class FloorSystem implements SubSystem<FloorMessage<String>> {
         // Send to scheduler
         inboundMessageBuffer.put(message);
         return Arrays.stream(message).map(msg -> msg.getData().toString()).toArray(String[]::new);
+    }
+
+    public static void main(String[] args) {
+        FloorSystem f = new FloorSystem();
+        f.startFloorInteractions();
     }
 
 }

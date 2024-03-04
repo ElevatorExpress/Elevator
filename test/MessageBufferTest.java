@@ -1,15 +1,16 @@
-import Messages.ElevatorMessage;
-import Messages.MessageInterface;
-import Messages.MessageTypes;
-import Messages.Signal;
+import util.Messages.ElevatorMessage;
+import util.Messages.MessageInterface;
+import util.Messages.MessageTypes;
+import util.Messages.Signal;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import util.MessageBuffer;
 
 import java.util.Collections;
 
 /**
- * Testing MessageBuffer
+ * Testing util.MessageBuffer
  * @author Joshua Braddon
  */
 class MessageBufferTest {

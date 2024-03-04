@@ -1,7 +1,10 @@
-import Messages.ElevatorMessage;
-import Messages.MessageInterface;
-import Messages.MessageTypes;
+package scheduler;
+
+import util.Messages.ElevatorMessage;
+import util.Messages.MessageInterface;
+import util.Messages.MessageTypes;
 import util.ElevatorLogger;
+import util.MessageBuffer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,12 +12,12 @@ import java.util.HashMap;
 
 
 /**
- * The Scheduler class is responsible for managing elevator and floor requests,
+ * The scheduler.Scheduler class is responsible for managing elevator and floor requests,
  * assigning idle elevators to floor requests, and handling elevator status updates.
  * It implements the Runnable interface to allow it to be executed in a separate thread.
  * At hte moment it is at risk of circular wait, and needs to be refactored to use semaphores.
  */
-public class Scheduler implements Runnable {
+public class Scheduler {
     private MessageBuffer messageBuffer;
     private MessageBuffer floorOutBuffer;
     private MessageBuffer elevatorOutBuffer;
@@ -36,17 +39,17 @@ public class Scheduler implements Runnable {
 
     //Key is Message ID, Value is the message, store for elevator requests that are pending
     private HashMap<String, MessageInterface> pendingElevatorRequests = new HashMap<>();
-    private static final ElevatorLogger logger = new ElevatorLogger("Scheduler");
+    private static final ElevatorLogger logger = new ElevatorLogger("scheduler.Scheduler");
 
 
     //ToDo: Replace synchronized with semaphores to avoid circular wait.
     
     /**
-     * The Scheduler class represents a scheduler in an elevator system.
+     * The scheduler.Scheduler class represents a scheduler in an elevator system.
      * It is responsible for managing message buffers and handling floor requests.
      */
         /**
-         * Constructs a new Scheduler object with the specified message buffers.
+         * Constructs a new scheduler.Scheduler object with the specified message buffers.
          * 
          * @param messageBuffer    Shared buffer for incoming messages
          * @param floorOutBuffer   Shared message buffer for outgoing messages to floors
@@ -57,6 +60,15 @@ public class Scheduler implements Runnable {
             this.floorOutBuffer = floorOutBuffer;
             this.elevatorOutBuffer = elevatorOutBuffer;
         }
+
+    /**
+     * Filler constructor do not use
+     */
+    private Scheduler(){
+        this(new MessageBuffer(10, "Dummy"),
+                new MessageBuffer(10, "FloorDummy"),
+                new MessageBuffer(10, "ElevatorDummy"));
+    }
 
 
 
@@ -97,7 +109,7 @@ public class Scheduler implements Runnable {
 
     /**
      * Retrieves messages from the elevatorRequestBuffer, this is called after the messages have been removed from the
-     * shared buffer. Only Scheduler has access to this buffer.
+     * shared buffer. Only scheduler.Scheduler has access to this buffer.
      * Close requests once they are fulfilled. it is called after thread woken up from wait
      * and messages are in the buffer.
      * No params, no return, public for testing purposes
@@ -206,14 +218,9 @@ public class Scheduler implements Runnable {
         }
     }
 
-    /**
-     * Runs this operation.
-     */
-    @Override
-    public void run() {
-        //Add a killSwitch
-
-            startSystem();
-
+    public static void main(String[] args) {
+        //TODO: Message buffers will no longer be shared objects, constructor needs to be reworked
+        Scheduler s = new Scheduler(); // This is a dummy constructor for testing do not use this
+        s.startSystem();
     }
 }
