@@ -1,6 +1,17 @@
 package util;
 
 import util.Messages.MessageInterface;
+import util.Messages.SerializableMessage;
+
+import java.io.Serial;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.SynchronousQueue;
 
 /**
  * Data structure to pass messages within the system
@@ -13,13 +24,18 @@ public class MessageBuffer {
     String bufferName;
     private volatile int bufferLength = 0;
 
+    private DatagramSocket socket;
+    private InetSocketAddress address;
+    private int port;
 
-    private final MessageInterface[] messageBuffer;
+    private final ConcurrentLinkedQueue<SerializableMessage> messageBuffer = new ConcurrentLinkedQueue<>();
 
-    public MessageBuffer(int size, String bufferName) {
+    public MessageBuffer(int size, String bufferName, DatagramSocket socket, InetSocketAddress address, int port) {
 
-        this.messageBuffer = new MessageInterface[size];
         this.bufferName = bufferName;
+        this.socket = socket;
+        this.address = address;
+        this.port = port;
     }
 
     /**
@@ -28,7 +44,7 @@ public class MessageBuffer {
      */
     public synchronized int getBufferLength(){
         int count = 0;
-        for (MessageInterface message : messageBuffer) {
+        for (SerializableMessage message : messageBuffer) {
             if (message != null) {
                 count++;
             }else{
@@ -36,6 +52,22 @@ public class MessageBuffer {
             }
         }
         return count;
+    }
+
+    public void listenAndFillBuffer(){
+        Thread t = new Thread(() -> {
+            try {
+                while (true) {
+                    SerializableMessage message = MessageHelper.RecieveMessage(socket, new byte[1024], new DatagramPacket(new byte[1024], 1024));
+                    messageBuffer.add(message);
+                    bufferEmpty = false;
+                    bufferLength++;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t.start();
     }
 
     /**
@@ -50,25 +82,18 @@ public class MessageBuffer {
      * Gets the contents of the buffer and then clears the buffer
      * @return the messages inside the buffer
      */
-    public synchronized MessageInterface[] get() {
+    //ToDo: I think this will work, I'm hoping that .toArray() will use output params.
+    public SerializableMessage[] get() {
         //Loops until the buffer is not empty
-        while (bufferLength < 1) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                System.err.println("Producer ERROR: " + e.getMessage());
-            }
-        }
             //Grabs the messages from the buffer
-            MessageInterface[] messages = new MessageInterface[bufferLength];
-            System.arraycopy(messageBuffer, 0, messages, 0, bufferLength);
+
+            SerializableMessage[] messages = new SerializableMessage[messageBuffer.size()];
+            messageBuffer.toArray(messages);
+//            System.arraycopy( messageBuffer.toArray(), 0, messages, 0, bufferLength);
             // null the buffer
-            for (int i = 0; i < bufferLength; i++) {
-                messageBuffer[i] = null;
-            }
             bufferEmpty = true;
             bufferLength = 0;
-            notifyAll();
+//            notifyAll();
             return messages;
 
     }
@@ -77,23 +102,8 @@ public class MessageBuffer {
      * Waits until buffer is available then fills it with messages
      * @param messages the messages being added to the buffer
      */
-    public synchronized void put(MessageInterface[] messages) {
-            while (bufferLength + messages.length > messageBuffer.length){
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    System.err.println("Producer ERROR: " + e.getMessage());
-                }
-            }
-            //Make sure the buffer is the correct size
-            if (messages.length > messageBuffer.length || messages.length + bufferLength > messageBuffer.length) {
-                throw new IllegalArgumentException("Message buffer is too small ");
-            }
-
-        System.arraycopy(messages, 0, messageBuffer, bufferLength, messages.length);
-        bufferLength += messages.length;
-        bufferEmpty = false;
-            notifyAll();
+    public void put(ArrayList<SerializableMessage> messages) {
+        MessageHelper.SendMessages(socket,  messages, address.getAddress(), port);
     }
 
 
