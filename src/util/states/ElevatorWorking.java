@@ -2,6 +2,9 @@ package util.states;
 
 import elevator.ElevatorSubsystem;
 
+/**
+ * Represents the ElevatorWorking State
+ */
 public class ElevatorWorking extends ElevatorState{
 
     protected ElevatorWorking(ElevatorSubsystem ctx){

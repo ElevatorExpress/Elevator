@@ -2,6 +2,9 @@ package util.states;
 
 import elevator.ElevatorSubsystem;
 
+/**
+ * Represents the ElevatorIdle State
+ */
 public class ElevatorIdle extends ElevatorState{
 
     protected ElevatorIdle(ElevatorSubsystem ctx){

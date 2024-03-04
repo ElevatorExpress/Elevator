@@ -2,6 +2,9 @@ package util.states;
 
 import elevator.ElevatorSubsystem;
 
+/**
+ * Base Elevator State
+ */
 public abstract class ElevatorState {
 
     protected ElevatorSubsystem ctx;
