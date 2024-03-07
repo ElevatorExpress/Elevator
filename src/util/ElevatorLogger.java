@@ -1,32 +1,31 @@
 package util;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  * Class that acts as a wrapper to java.util.logging.Logger. Makes the logger easier to use for this project.
  */
 public class ElevatorLogger {
     // Name of the Logger
     private final String internalLoggerName;
+    private final long startTime;
 
     /**
      * Create a ElevatorLogger
      * @param ownerName The name of the class that owns this Logger
      */
     public ElevatorLogger(String ownerName) {
+        startTime = System.nanoTime();
         internalLoggerName = ownerName;
     }
 
     /**
      * Logs the specified string
      * @param log The String to log
-     * @param level The log level
      */
-    private void log(String log, Level level){
-        Logger l = Logger.getLogger(internalLoggerName);
-        String sb = internalLoggerName + ": " + log;
-        l.log(level, sb);
+    private void log(String log){
+        // TimeUnit is not working on intelliJ JDK 21. Looked online, seems to be a bug.
+        long time = (System.nanoTime() - startTime);
+        String time_to_write = ((time / 1000000000) > 0) ? time/1000000000 + " s" : time + " ns";
+        System.out.println('[' + internalLoggerName + " - " + time_to_write + "] " + log);
     }
 
     /**
@@ -34,7 +33,7 @@ public class ElevatorLogger {
      * @param log The String to log
      */
     public void info(String log){
-        log('\n' + log + '\n', Level.INFO);
+        log(log);
     }
 
     /**
@@ -42,7 +41,7 @@ public class ElevatorLogger {
      * @param log The String to log
      */
     public void debug(String log){
-        log("\nDEBUG: " + log + '\n', Level.ALL);
+        log("DEBUG: " + log);
     }
 
 }

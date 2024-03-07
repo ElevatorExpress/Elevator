@@ -6,6 +6,7 @@ import util.Messages.Signal;
 import util.ElevatorLogger;
 import util.MessageBuffer;
 import util.SubSystem;
+import util.states.ElevatorState;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -22,10 +23,12 @@ import static java.lang.Math.abs;
 public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
 
     private Integer currentFloor = 1;
-    private MessageBuffer outboundBuffer, inboundBuffer;
-    private ElevatorButtonPanel buttons;
+    private final MessageBuffer outboundBuffer;
+    private final MessageBuffer inboundBuffer;
+    private final ElevatorButtonPanel buttons;
     private MessageInterface<String>[] floorRequestMessages;
-    private String elevatorId = UUID.randomUUID().toString();
+    private final String elevatorId = UUID.randomUUID().toString();
+    private ElevatorState currentState;
     private static final ElevatorLogger logger = new ElevatorLogger("elevator.ElevatorSubsystem");
 
     /**
@@ -37,6 +40,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
     public ElevatorSubsystem(MessageBuffer outboundBuffer, MessageBuffer inboundBuffer) {
         this.outboundBuffer = outboundBuffer;
         this.inboundBuffer = inboundBuffer;
+        currentState = null;
         buttons = new ElevatorButtonPanel(22);
     }
 
@@ -70,7 +74,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      */
     private void goToDestinationFloor(MessageInterface<String> floorRequest) throws InterruptedException {
         //Grab the floor that needs to be traveled to
-        Integer destFloor = Integer.parseInt(floorRequest.getData().get("Floor"));
+        int destFloor = Integer.parseInt(floorRequest.getData().get("Floor"));
         buttons.turnOnButton(destFloor);
 
         logger.info("Going" + floorRequest.getData().get("RequestDirection") + "to destination floor:" + destFloor);
@@ -81,8 +85,6 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         //Once the elevator arrives update state information
         currentFloor = destFloor;
         buttons.turnOffButton(destFloor);
-        signalScheduler(Signal.DONE, floorRequest);
-        logger.info("Elevator is done sending");
     }
 
     /**
@@ -118,7 +120,7 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      * @param state The next state of the elevator
      * @param floorRequest The request which the elevator is fulfilling/ fulfilled.
      */
-    private void signalScheduler(Signal state, MessageInterface<String> floorRequest) {
+    public void signalScheduler(Signal state, MessageInterface<String> floorRequest) {
         HashMap<String, MessageInterface<?>> workData = new HashMap<>();
         //If the current state of the elevator IDLE there is no request to be done
         workData.put("Servicing", floorRequest);
@@ -153,23 +155,39 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
         return new String[0];
     }
 
+    public void completeRequestEvent(){
+        currentState = this.currentState.handleCompleteRequest();
+    }
+
+    public void receiveRequestEvent(){
+        currentState = this.currentState.handleReceiveRequest();
+    }
+
     /**
      * Creates the thread and performs the operations of the elevator
      */
     public void run(){
         signalScheduler(Signal.IDLE, null);
+        currentState = ElevatorState.start(this);
         logger.info("Elevator is idle");
         try {
             while (true) {
                 receiveMessage();
                 for (MessageInterface<String> floorRequest : floorRequestMessages) {
                     if (floorRequest == null) {
-                        throw new IllegalArgumentException("Invalid floorRequest: " + floorRequest);
+                        throw new IllegalArgumentException("Invalid floorRequest: null");
                     }
                     logger.info("Elevator received request from scheduler: " + floorRequest);
                     signalScheduler(Signal.WORKING, floorRequest ); // assuming that get() always returns with request
+                    receiveRequestEvent();
+
                     goToSourceFloor(floorRequest);
                     goToDestinationFloor(floorRequest);
+
+                    signalScheduler(Signal.DONE, floorRequest);
+                    logger.info("Elevator is done sending");
+
+                    completeRequestEvent();
                     signalScheduler(Signal.IDLE, floorRequest);
                 }
             }
