@@ -123,6 +123,10 @@ public class Scheduler {
      * and messages are in the buffer.
      * No params, no return, public for testing purposes
      */
+    /**
+     *
+     * @throws IOException
+     */
     public void serveElevatorReqs() throws IOException {
         String[] keys = elevatorRequestBuffer.keySet().toArray(new String[0]);
         for (String messageId : keys) {
@@ -131,29 +135,28 @@ public class Scheduler {
             if (message.type().equals(MessageTypes.ELEVATOR)){
                 switch (message.signal()) {
                     case IDLE:
-                        idleElevators.put(message.senderID(), message);
+                        idleElevators.put(String.valueOf(message.senderID()), message);
                         elevatorRequestBuffer.remove(messageId);
                         logger.info("Elevator " + message.senderID() + " is now idle");
                         break;
                     case WORKING:
                         //USES Sender ID as KEY
-                        workingElevators.put(message.senderID(), message);
+                        workingElevators.put(String.valueOf(message.senderID()), message);
                         logger.info("Elevator " + message.senderID() + " is now working");
                         break;
                     case DONE:
                         logger.info("Elevator " + message.senderID() + " is now done");
                         workingElevators.remove(message.senderID());
-                        if(message.data() == null || !message.data().containsKey("Servicing")){
-                            throw new IllegalArgumentException("Invalid data: " + message.data() + " for message: " + message);
+                        if(message.signal() == null || !message.reqID().isPresent()){
+                            throw new IllegalArgumentException("Invalid data: " + " for message: " + message);
                         }
                         //values associated with servicing is the origional message that was sent to the elevator
-                        SerializableMessage doneFMessage = (SerializableMessage) message.data().get("Servicing");
-                        String completedFloorReqID = doneFMessage.senderID();
+                        String completedFloorReqID = message.reqID().get();
                         pendingFloorRequests.remove(completedFloorReqID);
 //                        floorOutBuffer.put(new MessageInterface[]{message});
                         InetAddress floorAddr = InetAddress.getByName(message.senderAddr());
                         MessageHelper.SendMessage(outSocket, message,  floorAddr,floorSubSystemPort);
-                        idleElevators.put(message.senderID(), message);
+                        idleElevators.put(String.valueOf(message.senderID()), message);
                         break;
                     default:
                         throw new IllegalArgumentException("Invalid signal");
@@ -185,10 +188,10 @@ public class Scheduler {
 
                     switch (sm.type()) {
                         case ELEVATOR:
-                            elevatorRequestBuffer.put(sm.senderID(), sm);
+                            elevatorRequestBuffer.put(sm.messageID(), sm);
                             break;
                         case FLOOR:
-                            floorRequestBuffer.put(sm.senderID(), sm);
+                            floorRequestBuffer.put(sm.messageID(), sm);
                             break;
                         default:
                             throw new IllegalArgumentException("Invalid message type");

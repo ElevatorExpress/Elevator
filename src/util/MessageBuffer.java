@@ -1,14 +1,18 @@
 package util;
 
+import floor.FloorInfoReader;
 import util.Messages.MessageInterface;
+import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
+import util.Messages.Signal;
 
+import java.awt.*;
+import java.io.IOException;
 import java.io.Serial;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.SynchronousQueue;
@@ -28,8 +32,19 @@ public class MessageBuffer {
     private InetSocketAddress address;
     private int port;
 
+    /**
+     *
+     */
     private final ConcurrentLinkedQueue<SerializableMessage> messageBuffer = new ConcurrentLinkedQueue<>();
 
+    /**
+     *
+     * @param size
+     * @param bufferName
+     * @param socket
+     * @param address
+     * @param port
+     */
     public MessageBuffer(int size, String bufferName, DatagramSocket socket, InetSocketAddress address, int port) {
 
         this.bufferName = bufferName;
@@ -104,6 +119,23 @@ public class MessageBuffer {
      */
     public void put(ArrayList<SerializableMessage> messages) {
         MessageHelper.SendMessages(socket,  messages, address.getAddress(), port);
+    }
+
+
+    /**
+     *
+     * @param id
+     * @param workData
+     * @param state
+     * @param type
+     */
+    public void put(Signal signal, MessageTypes type, int senderId, String messageID, Optional<String> reqID, Optional<FloorInfoReader.Data> workData) throws IOException {
+        ArrayList<SerializableMessage> messages = new ArrayList<>();
+
+        SerializableMessage message = new SerializableMessage(address.getHostName(),port,signal,type, senderId, messageID, reqID, workData);
+        MessageHelper.SendMessage(socket, message, address.getAddress(), port);
+//        MessageHelper.SendMessage(socket, new SerializableMessage(address.getHostName(),port,signal,type, senderId, messageID, reqID, workData), address.getAddress(), port);
+//        messages.add(new SerializableMessage(address.getHostName(),port,state,type, id, workData));
     }
 
 

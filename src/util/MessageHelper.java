@@ -11,6 +11,13 @@ import java.util.ArrayList;
 
 public class MessageHelper {
 
+    /**
+     *
+     * @param socket
+     * @param buffer
+     * @param packet
+     * @return
+     */
     public static SerializableMessage RecieveMessage(DatagramSocket socket, byte[] buffer, DatagramPacket packet) {
 
         while (true) {
@@ -29,6 +36,13 @@ public class MessageHelper {
         }
     }
 
+    /**
+     *
+     * @param socket
+     * @param messages
+     * @param addr
+     * @param port
+     */
     public static void SendMessages(DatagramSocket socket, ArrayList<SerializableMessage> messages, InetAddress addr, int port) {
         Thread t = new Thread(() -> {
             try {
@@ -44,6 +58,14 @@ public class MessageHelper {
         t.start();
     }
 
+    /**
+     *
+     * @param socket
+     * @param message
+     * @param addr
+     * @param port
+     * @throws IOException
+     */
     public static void SendMessage(DatagramSocket socket, SerializableMessage message,InetAddress addr, int port) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (ObjectOutputStream oos = new ObjectOutputStream(bos)){
