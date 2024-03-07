@@ -1,19 +1,18 @@
 package scheduler;
 
-import floor.FloorInfoReader;
-import util.MessageHelper;
-import util.Messages.ElevatorMessage;
-import util.Messages.MessageInterface;
-import util.Messages.MessageTypes;
 import util.ElevatorLogger;
-import util.MessageBuffer;
+import util.MessageHelper;
+import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
+import util.states.SchedulerScheduling;
+import util.states.SchedulerState;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,6 +27,7 @@ import java.util.HashMap;
 public class Scheduler {
     private DatagramSocket inSocket;
     private DatagramSocket outSocket;
+    private SchedulerState currentState;
 
 
 
@@ -76,6 +76,7 @@ public class Scheduler {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            currentState = null; // Started with startSystem()
         }
 
 
@@ -123,10 +124,6 @@ public class Scheduler {
      * and messages are in the buffer.
      * No params, no return, public for testing purposes
      */
-    /**
-     *
-     * @throws IOException
-     */
     public void serveElevatorReqs() throws IOException {
         String[] keys = elevatorRequestBuffer.keySet().toArray(new String[0]);
         for (String messageId : keys) {
@@ -148,6 +145,7 @@ public class Scheduler {
                         logger.info("Elevator " + message.senderID() + " is now done");
                         workingElevators.remove(message.senderID());
                         if(message.signal() == null || !message.reqID().isPresent()){
+                            currentState.handleBadMessage();
                             throw new IllegalArgumentException("Invalid data: " + " for message: " + message);
                         }
                         //values associated with servicing is the origional message that was sent to the elevator
@@ -159,10 +157,12 @@ public class Scheduler {
                         idleElevators.put(String.valueOf(message.senderID()), message);
                         break;
                     default:
+                        currentState.handleBadMessage();
                         throw new IllegalArgumentException("Invalid signal");
                 }
             }
         }
+        currentState.handleDoneServing();
     }
 
 
@@ -200,12 +200,14 @@ public class Scheduler {
 
                 } catch (Exception e) {
                     System.err.println("Error during deserialization: " + e.getMessage());
+                    currentState.handleBadMessage();
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
 
             System.out.println("Done \n\n");
+            currentState.handleDoneReadingRequest();
         }
     }
 
@@ -215,10 +217,9 @@ public class Scheduler {
      * Assigns idle elevators to floor requests and adds the request to pending floor requests.
      * Pending floor requests are ones that are in the process of being serviced, they
      * will have a counterpart "working elevator"
-     *
+     * <p>
      * No params, no return, public for testing purposes
      */
-
     public void serveFloorRequests() throws IOException {
             //go through idle elevators and assign them to floor requests, add the request to pending floor requests
             String[] floorRequestKeys = floorRequestBuffer.keySet().toArray(new String[0]);
@@ -240,12 +241,24 @@ public class Scheduler {
                 }
             }
             MessageHelper.SendMessages(outSocket, elevatorOutMessagePayload, InetAddress.getLocalHost(), elevatorSubSystemPort);
+            currentState.handleDoneServing();
         }
+
+    /**
+     * Starts the system
+     */
     public void startSystem() throws IOException {
+        currentState = SchedulerState.start(this);
         while (true){
-            readBuffer();
-            serveElevatorReqs();
-            serveFloorRequests();
+            if (currentState instanceof SchedulerScheduling state){
+                SchedulerScheduling.SubState subState = state.getSubState();
+                if (subState == SchedulerScheduling.SubState.READING_BUFF)
+                    readBuffer();
+                else if (subState == SchedulerScheduling.SubState.SERVING_ELEVATORS)
+                    serveElevatorReqs();
+                else if (subState == SchedulerScheduling.SubState.SERVING_FLOORS)
+                    serveFloorRequests();
+            }
         }
     }
 

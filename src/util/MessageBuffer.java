@@ -1,21 +1,17 @@
 package util;
 
 import floor.FloorInfoReader;
-import util.Messages.MessageInterface;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
 import util.Messages.Signal;
 
-import java.awt.*;
 import java.io.IOException;
-import java.io.Serial;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.SynchronousQueue;
 
 /**
  * Data structure to pass messages within the system
@@ -32,9 +28,6 @@ public class MessageBuffer {
     private InetSocketAddress address;
     private int port;
 
-    /**
-     *
-     */
     private final ConcurrentLinkedQueue<SerializableMessage> messageBuffer = new ConcurrentLinkedQueue<>();
 
     /**

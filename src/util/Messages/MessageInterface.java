@@ -8,6 +8,7 @@ import java.util.Map;
  * <a href="https://github.com/ElevatorExpress/Elevator/wiki/Message-Protocol">here</a>.
  * @param <T> Generic type representing data to be placed inside a data map
  */
+@Deprecated(forRemoval = true, since = "March 3 2024")
 public interface MessageInterface<T> {
     /**
      * @return The type of the message

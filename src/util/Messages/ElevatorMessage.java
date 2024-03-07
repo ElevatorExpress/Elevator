@@ -16,6 +16,7 @@ import java.util.Objects;
  * @param id The unique id of the message
  * @param <T> Generic type representing data to be placed inside a data map.
  */
+@Deprecated(forRemoval = true, since = "March 3 2024")
 public record ElevatorMessage<T>(MessageTypes messageType, String elevatorID, Map<String, T> data,
                                  Signal signal, String id) implements MessageInterface<T> {
     @Override
