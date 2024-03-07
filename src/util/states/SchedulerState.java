@@ -35,6 +35,7 @@ public abstract class SchedulerState {
      * Handles the "Look For Request" event
      * @return The next state
      */
+    @Deprecated(forRemoval = true)
     public SchedulerState handleLookForRequest(){
         return this;
     }

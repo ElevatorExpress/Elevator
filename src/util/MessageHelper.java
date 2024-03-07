@@ -6,17 +6,16 @@ import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 
 public class MessageHelper {
 
     /**
-     *
-     * @param socket
-     * @param buffer
-     * @param packet
-     * @return
+     * Receives and deserializes a message
+     * @param socket The Socket to receive a message from
+     * @param buffer The buffer to store the message
+     * @param packet The Packet to store the message
+     * @return The deserialized message object
      */
     public static SerializableMessage RecieveMessage(DatagramSocket socket, byte[] buffer, DatagramPacket packet) {
 
@@ -37,11 +36,11 @@ public class MessageHelper {
     }
 
     /**
-     *
-     * @param socket
-     * @param messages
-     * @param addr
-     * @param port
+     * Serializes and sends messages
+     * @param socket The socket used to send a message
+     * @param messages The messages to be sent
+     * @param addr The target address
+     * @param port The target port
      */
     public static void SendMessages(DatagramSocket socket, ArrayList<SerializableMessage> messages, InetAddress addr, int port) {
         Thread t = new Thread(() -> {
@@ -59,12 +58,11 @@ public class MessageHelper {
     }
 
     /**
-     *
-     * @param socket
-     * @param message
-     * @param addr
-     * @param port
-     * @throws IOException
+     * Serializes and sends a message
+     * @param socket The socket used to send a message
+     * @param message The message to be sent
+     * @param addr The target address
+     * @param port The target port
      */
     public static void SendMessage(DatagramSocket socket, SerializableMessage message,InetAddress addr, int port) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

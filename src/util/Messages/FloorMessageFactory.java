@@ -7,6 +7,7 @@ import java.util.UUID;
  * Factory for creating FloorMessages
  * @param <T> Generic type representing data to be placed inside a data map of the message
  */
+@Deprecated(forRemoval = true, since = "March 3 2024")
 public class FloorMessageFactory <T>{
     /**
      * Creates a FloorMessage
