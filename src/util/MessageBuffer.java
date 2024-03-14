@@ -10,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -106,6 +107,22 @@ public class MessageBuffer {
 
     }
 
+    public SerializableMessage[] getForElevators() {
+        synchronized (messageBuffer) {
+            while(messageBuffer.isEmpty()) {
+                try {
+                    messageBuffer.wait();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            SerializableMessage[] returnList = ElevatorRequestOrder.getRequest(this.messageBuffer);
+            messageBuffer.notifyAll();
+            System.out.println(Arrays.toString(returnList));
+            return returnList;
+        }
+    }
+
     /**
      * Waits until buffer is available then fills it with messages
      * @param messages the messages being added to the buffer
@@ -116,10 +133,7 @@ public class MessageBuffer {
 
 
     /**
-     *
-     * @param id
      * @param workData
-     * @param state
      * @param type
      */
     public void put(Signal signal, MessageTypes type, int senderId, String messageID, Optional<String> reqID, Optional<FloorInfoReader.Data> workData) throws IOException {
