@@ -1,4 +1,4 @@
-package util;
+package elevator;
 
 import util.Messages.SerializableMessage;
 

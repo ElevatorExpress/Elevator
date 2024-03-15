@@ -1,5 +1,6 @@
 package util;
 
+import elevator.ElevatorRequestOrder;
 import floor.FloorInfoReader;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
