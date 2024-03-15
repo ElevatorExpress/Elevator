@@ -17,7 +17,7 @@ public class MessageHelper {
      * @param packet The Packet to store the message
      * @return The deserialized message object
      */
-    public static SerializableMessage RecieveMessage(DatagramSocket socket, byte[] buffer, DatagramPacket packet) {
+    public static SerializableMessage ReceiveMessage(DatagramSocket socket, byte[] buffer, DatagramPacket packet) {
 
         while (true) {
             System.out.println("Waiting for packet");

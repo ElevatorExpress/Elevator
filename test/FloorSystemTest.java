@@ -3,26 +3,28 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import util.MessageBuffer;
-import util.Messages.ElevatorMessageFactory;
-import util.Messages.FloorMessage;
-import util.Messages.MessageInterface;
-import util.Messages.Signal;
+import util.Messages.*;
 
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.util.HashMap;
 
 class FloorSystemTest {
 
-    MessageBuffer SCH_INBOUND;
-    MessageBuffer SCH_OUTBOUND;
-    static ElevatorMessageFactory<FloorMessage<String>> ELEV_FACTORY = new ElevatorMessageFactory<>();
-
+    MessageBuffer COMM_BUFF;
     FloorSystem floorSystem;
 
     @BeforeEach
-    void createSystem(){
-        SCH_INBOUND = new MessageBuffer(10, "");
-        SCH_OUTBOUND = new MessageBuffer(10, "");
-        floorSystem = new FloorSystem(SCH_OUTBOUND, SCH_INBOUND);
+    void createSystem() throws SocketException {
+        COMM_BUFF = new MessageBuffer(
+                1, // Obsolete
+                "FloorSystem ->",
+                new DatagramSocket(8082),
+                new InetSocketAddress("localhost", 8080),
+                8080
+        );
+        floorSystem = new FloorSystem(COMM_BUFF);
     }
 
     @Test
@@ -33,8 +35,9 @@ class FloorSystemTest {
             * Being removed properly
             * Being Interpreted properly
          */
+
         Thread consumerProducerThread = new Thread(() -> {
-            MessageInterface<?>[] messages = SCH_INBOUND.get();
+            SerializableMessage[] messages = COMM_BUFF.get();
             Assertions.assertTrue(messages.length != 0, "No Messages Were Found");
 
             MessageInterface<?>[] elevatorMessages =  new MessageInterface<?>[messages.length];
