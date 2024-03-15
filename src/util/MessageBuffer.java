@@ -68,7 +68,7 @@ public class MessageBuffer {
         Thread t = new Thread(() -> {
             try {
                 while (true) {
-                    SerializableMessage message = MessageHelper.RecieveMessage(socket, new byte[1024], new DatagramPacket(new byte[1024], 1024));
+                    SerializableMessage message = MessageHelper.ReceiveMessage(socket, new byte[1024], new DatagramPacket(new byte[1024], 1024));
                     messageBuffer.add(message);
                     bufferEmpty = false;
                     bufferLength++;
@@ -134,8 +134,11 @@ public class MessageBuffer {
 
 
     /**
-     * @param workData
      * @param type
+     * @param senderId
+     * @param messageID
+     * @param reqID
+     * @param workData
      */
     public void put(Signal signal, MessageTypes type, int senderId, String messageID, Optional<String> reqID, Optional<FloorInfoReader.Data> workData) throws IOException {
         ArrayList<SerializableMessage> messages = new ArrayList<>();
