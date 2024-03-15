@@ -1,105 +1,93 @@
 package elevator;
 
-import util.Messages.ElevatorMessageFactory;
-import util.Messages.MessageInterface;
+import util.Messages.MessageTypes;
+import util.Messages.SerializableMessage;
 import util.Messages.Signal;
 import util.ElevatorLogger;
 import util.MessageBuffer;
-import util.SubSystem;
+import util.states.ElevatorIdle;
 import util.states.ElevatorState;
+import util.states.ElevatorWorking;
+import elevator.ElevatorRequestTracker.*;
 
-import java.util.HashMap;
-import java.util.UUID;
+import java.net.*;
+import java.util.*;
 
 import static java.lang.Math.abs;
 
 /**
- * Class elevator.ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
+ * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
  * and go to the requested floors to pick up passengers. Once the passengers have been picked up, the elevator will deliver
  * passengers to the destination floor
  *
  * @author Yasir Sheikh
  */
-public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
+public class ElevatorSubsystem implements Runnable {
 
     private Integer currentFloor = 1;
-    private final MessageBuffer outboundBuffer;
-    private final MessageBuffer inboundBuffer;
+    private final MessageBuffer queue;
     private final ElevatorButtonPanel buttons;
-    private MessageInterface<String>[] floorRequestMessages;
-    private final String elevatorId = UUID.randomUUID().toString();
+    private final int elevatorId ;
     private ElevatorState currentState;
-    private static final ElevatorLogger logger = new ElevatorLogger("elevator.ElevatorSubsystem");
+    private final ElevatorLogger logger;
+    private final List<ElevatorRequestTracker> trackRequest = new ArrayList<>();
+
 
     /**
-     * Creates the Elevator subsystem and populates the lamps within the elevator car
      *
-     * @param outboundBuffer The buffer to send signals from elevator to scheduler
-     * @param inboundBuffer The buffer to receive request from the scheduler to the elevator
+     * @param queue
+     * @param elevatorId
      */
-    public ElevatorSubsystem(MessageBuffer outboundBuffer, MessageBuffer inboundBuffer) {
-        this.outboundBuffer = outboundBuffer;
-        this.inboundBuffer = inboundBuffer;
+    public ElevatorSubsystem(MessageBuffer queue, int elevatorId) {
+        this.queue = queue;
+        this.elevatorId = elevatorId;
+        logger = new ElevatorLogger("elevator.ElevatorSubsystem" + elevatorId);
         currentState = null;
         buttons = new ElevatorButtonPanel(22);
     }
 
-    private ElevatorSubsystem() {
-        this(new MessageBuffer(10, "DummyOut"), new MessageBuffer(10, "DummyIn"));
-    }
+    private void goToFloor(ElevatorRequestTracker ert) {
+        int floor = ert.getFloorByStatus();
+        String direction = getDirection(floor);
 
-    /**
-     * Goes to the floor where the request originated. Picks up passengers from the request floor.
-     *
-     * @param floorRequest The request which is being fulfilled
-     * @throws InterruptedException
-     */
-    private void goToSourceFloor(MessageInterface<String> floorRequest) throws InterruptedException {
-        //Gets the floor needed
-        Integer sourceFloor = Integer.parseInt(floorRequest.getData().get("ServiceFloor"));
-        //Picks the direction of travel
-        String direction = getDirection(sourceFloor);
-        logger.info(floorRequest.getData().get("Time") + " : Going " + direction + " to floor " + sourceFloor + " to get passengers");
-        //The delay it takes to move floors
-        travelDelay(sourceFloor);
-        logger.info("Arrived at floor" + sourceFloor);
-        currentFloor = sourceFloor;
-    }
+        if (ert.getStatus() == RequestStatus.SERVICING) {
+            if (currentFloor != floor) {
+                logger.info(ert.getRequest().data().get().time() + ": Going " + direction + " to floor: " + floor);
+                travelDelay(floor);
+                logger.info("Arrived at floor " + floor + " to pick up passengers");
+            } else {
+                logger.info(ert.getRequest().data().get().time() + " Picking up passengers from floor: " + floor );
+            }
 
-    /**
-     * Sets the lamp to on when passenger clicks a floor. Goes to the destination floor chosen.
-     *
-     * @param floorRequest The request which is being fulfilled
-     * @throws InterruptedException
-     */
-    private void goToDestinationFloor(MessageInterface<String> floorRequest) throws InterruptedException {
-        //Grab the floor that needs to be traveled to
-        int destFloor = Integer.parseInt(floorRequest.getData().get("Floor"));
-        buttons.turnOnButton(destFloor);
-
-        logger.info("Going" + floorRequest.getData().get("RequestDirection") + "to destination floor:" + destFloor);
-        //Delay to travel between floors
-        travelDelay(destFloor);
-        logger.info("Arrived at floor:" + destFloor);
-
-        //Once the elevator arrives update state information
-        currentFloor = destFloor;
-        buttons.turnOffButton(destFloor);
-    }
-
-    /**
-     * The time to takes to go to a floor, open doors and close doors.
-     *
-     * @param floor Used for determining distance
-     * @throws InterruptedException
-     */
-    private void travelDelay(Integer floor) throws InterruptedException {
-        if (abs(floor - currentFloor) == 1) {
-            // finding distance between floor and calculating time of travel + time of door open and close
-            Thread.sleep((long) (6140 + (1000 * 12.58)));
+            buttons.turnOnButton( ert.getDestFloor());
         } else {
-            // finding distance between floor and calculating time of travel + time of door open and close
-            Thread.sleep((long) (1000 * ((abs(floor - currentFloor) * 4L / 2.53) + 12.58)));
+            if (currentFloor != floor) {
+                logger.info("Going " + direction + " to floor: " + floor);
+                travelDelay(floor);
+                logger.info("Arrived at floor " + floor + " to drop passengers from floor: " + ert.getSourceFloor());
+            } else {
+                logger.info("Dropping passengers to floor " + floor + " from floor: " + ert.getSourceFloor());
+            }
+
+            buttons.turnOffButton(floor);
+            trackRequest.remove(ert);
+        }
+        currentFloor = floor;
+    }
+
+    /**
+     *
+     * @param floor
+     */
+    private void travelDelay(Integer floor) {
+        try {
+            if (abs(floor - currentFloor) == 1) {
+                Thread.sleep((long) (6140 + (1000 * 12.58)));
+            } else {
+                Thread.sleep((long) (1000 * ((abs(floor - currentFloor) * 4L / 2.53) + 12.58)));
+            }
+        } catch (InterruptedException ie) {
+            System.exit(1);
         }
     }
 
@@ -109,96 +97,131 @@ public class ElevatorSubsystem implements SubSystem<MessageInterface<String>> {
      * @param arrivalFloor The floor the elevator is moving to
      * @return A String for the determined direction
      */
-    private String getDirection(Integer arrivalFloor) {
+    private String getDirection(int arrivalFloor) {
         if (arrivalFloor - currentFloor > 0) {return "up";}
         return "down";
     }
 
-    /**
-     * Sends the scheduler a message containing the request being fulfilled along with the state of the elevator
-     *
-     * @param state The next state of the elevator
-     * @param floorRequest The request which the elevator is fulfilling/ fulfilled.
-     */
-    public void signalScheduler(Signal state, MessageInterface<String> floorRequest) {
-        HashMap<String, MessageInterface<?>> workData = new HashMap<>();
-        //If the current state of the elevator IDLE there is no request to be done
-        workData.put("Servicing", floorRequest);
-        if (state == Signal.IDLE) {
-            workData = null;
+    public boolean handleRequestDirection(int minMax, int floor, String direction) {
+        if (direction.equals("up")) return (minMax == 0 || minMax > floor);
+        return (minMax == 0 ||  floor > minMax);
+    }
+    public ElevatorRequestTracker serviceNextRequest() {
+        int minMax = 0;
+        ElevatorRequestTracker nextRequest = null;
+        for (ElevatorRequestTracker ert : trackRequest) {
+            switch (ert.getStatus()) {
+                case UNSERVICED -> {
+                    if (handleRequestDirection(minMax, ert.getSourceFloor(), ert.getDirection())){
+                        minMax = ert.getSourceFloor();
+                        nextRequest = ert;
+                    }
+                }
+                case SERVICING -> {
+                    if (handleRequestDirection(minMax, ert.getDestFloor(), ert.getDirection())){
+                        minMax = ert.getDestFloor();
+                        nextRequest = ert;
+                    }
+                }
+            }
         }
-        //If the elevator is working tell the scheduler
-        MessageInterface[] elevatorMessage = {new ElevatorMessageFactory<MessageInterface<?>>().createElevatorMessage(elevatorId, workData, state)};
-        sendMessage(elevatorMessage);
+        if (nextRequest.getStatus() == RequestStatus.SERVICING) {
+            nextRequest.setStatus(RequestStatus.DONE);
+        } else {
+            nextRequest.setStatus(RequestStatus.SERVICING);
+        }
+        return nextRequest;
+    }
+    /**
+     *
+     * @param state
+     * @param floorRequest
+     */
+    public void sendMessage(Signal state, SerializableMessage floorRequest) {
+        try {
+            SerializableMessage sm = (state == Signal.IDLE)?
+                    (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, UUID.randomUUID().toString(), null, null)) :
+                    (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, UUID.randomUUID().toString(), floorRequest.reqID(), floorRequest.data()));
+
+            logger.info("Elevator is sending message to scheduler");
+            queue.put((ArrayList<SerializableMessage>) List.of(sm));
+            logger.info("Elevator sent message to scheduler");
+        } catch (UnknownHostException ue) {
+            System.exit(1);
+        }
     }
 
     /**
-     * Gets the request from a shared buffer between the scheduler and elevator
+     *
      */
-    @Override
     public void receiveMessage() {
         logger.info("Elevator receiving message from scheduler");
-        floorRequestMessages = inboundBuffer.get(); // groups of request at a time
+        SerializableMessage[] floorRequestMessages = queue.getForElevators(); // groups of request at a time
+        Arrays.stream(floorRequestMessages).map(sm -> new ElevatorRequestTracker(RequestStatus.UNSERVICED, sm)).forEach(trackRequest::add);
         logger.info("Elevator received message from scheduler");
     }
 
+
     /**
-     * Sending a request to the shared buffer between the scheduler and elevator
-     * @param message The message indicating the current info for the elevator
-     * @return A String for the request from the floor.
+     *
      */
-    @Override
-    public String[] sendMessage(MessageInterface[] message) {
-        logger.info("Elevator sending message to scheduler");
-        outboundBuffer.put(message);
-        logger.info("Elevator sent message to scheduler");
-        return new String[0];
-    }
-
     public void completeRequestEvent(){
-        currentState = this.currentState.handleCompleteRequest();
-    }
-
-    public void receiveRequestEvent(){
-        currentState = this.currentState.handleReceiveRequest();
+        currentState = currentState.handleCompleteRequest();
     }
 
     /**
-     * Creates the thread and performs the operations of the elevator
+     *
+     */
+    public void receiveRequestEvent(){
+        currentState = currentState.handleReceiveRequest();
+    }
+
+
+    /**
+     *
      */
     public void run(){
-        signalScheduler(Signal.IDLE, null);
         currentState = ElevatorState.start(this);
-        logger.info("Elevator is idle");
-        try {
-            while (true) {
+        while (true) {
+            if (currentState instanceof ElevatorIdle) {
+                sendMessage(Signal.IDLE, null);
+                logger.info("Elevator is idle");
                 receiveMessage();
-                for (MessageInterface<String> floorRequest : floorRequestMessages) {
-                    if (floorRequest == null) {
-                        throw new IllegalArgumentException("Invalid floorRequest: null");
+                receiveRequestEvent();
+            } else if (currentState instanceof ElevatorWorking) {
+                while (!trackRequest.isEmpty()) {
+                    ElevatorRequestTracker trackedFloorRequest = serviceNextRequest();
+
+                    if (trackedFloorRequest.getStatus() == RequestStatus.SERVICING) {
+                        logger.info("Elevator received request from scheduler: " + trackedFloorRequest.getRequest());
+                        sendMessage(Signal.WORKING, trackedFloorRequest.getRequest());
+                        goToFloor(trackedFloorRequest);
+                    } else {
+                        goToFloor(trackedFloorRequest);
+                        sendMessage(Signal.DONE, trackedFloorRequest.getRequest());
+                        logger.info("Elevator is done sending");
+                        completeRequestEvent();
                     }
-                    logger.info("Elevator received request from scheduler: " + floorRequest);
-                    signalScheduler(Signal.WORKING, floorRequest ); // assuming that get() always returns with request
-                    receiveRequestEvent();
-
-                    goToSourceFloor(floorRequest);
-                    goToDestinationFloor(floorRequest);
-
-                    signalScheduler(Signal.DONE, floorRequest);
-                    logger.info("Elevator is done sending");
-
-                    completeRequestEvent();
-                    signalScheduler(Signal.IDLE, floorRequest);
                 }
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+
         }
     }
 
-    public static void main(String[] args) {
-        //TODO: Rework constructor, message buffers are no longer shared
-        ElevatorSubsystem e = new ElevatorSubsystem(); // DO not use dummy constructor
-        e.run();
+
+    public static void main(String[] args) throws SocketException, UnknownHostException {
+        MessageBuffer queue = new MessageBuffer(10, "ElevatorQueue", new DatagramSocket(8081), new InetSocketAddress(InetAddress.getLocalHost(), 8080), 8080);
+        queue.listenAndFillBuffer();
+        Thread elevator1 = new Thread(new ElevatorSubsystem(queue, 1), "Elevator1");
+        Thread elevator2 = new Thread(new ElevatorSubsystem(queue, 2), "Elevator2");
+
+        elevator1.start();
+        elevator2.start();
+
+
+
+
+
+
     }
 }
