@@ -1,18 +1,12 @@
 package util;
 
 import elevator.ElevatorRequestOrder;
-import elevator.ElevatorRequestOrder.*;
-import floor.FloorInfoReader;
-import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
-import util.Messages.Signal;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -23,22 +17,20 @@ public class MessageBuffer {
 
     String bufferName;
 
-    private DatagramSocket socket;
-    private InetSocketAddress address;
-    private int port;
+    private final DatagramSocket socket;
+    private final InetSocketAddress address;
+    private final int port;
 
     private final LinkedBlockingQueue<SerializableMessage> messageBuffer = new LinkedBlockingQueue<>();
 
     /**
-     *
-     * @param size
-     * @param bufferName
-     * @param socket
-     * @param address
-     * @param port
+     * Creates a message buffer
+     * @param bufferName The name of this buffer
+     * @param socket The socket that this buffer uses to listen messages and send messages
+     * @param address The target address
+     * @param port The target port
      */
-    public MessageBuffer(int size, String bufferName, DatagramSocket socket, InetSocketAddress address, int port) {
-
+    public MessageBuffer(String bufferName, DatagramSocket socket, InetSocketAddress address, int port) {
         this.bufferName = bufferName;
         this.socket = socket;
         this.address = address;
@@ -53,11 +45,16 @@ public class MessageBuffer {
         return messageBuffer.size();
     }
 
+    /**
+     * Creates a thread that will continuously listen to messages and fill this buffer
+     */
     public void listenAndFillBuffer(){
+        ElevatorLogger logger = new ElevatorLogger("ReaderThread");
         Thread t = new Thread(() -> {
             try {
                 while (true) {
                     byte[] buff = new byte[1024];
+                    logger.info("Waiting for packet");
                     SerializableMessage message = MessageHelper.ReceiveMessage(socket, buff, new DatagramPacket(buff, buff.length));
                     messageBuffer.put(message);
                 }
@@ -80,7 +77,6 @@ public class MessageBuffer {
      * Gets the contents of the buffer and then clears the buffer
      * @return the messages inside the buffer
      */
-    //ToDo: I think this will work, I'm hoping that .toArray() will use output params.
     public SerializableMessage[] get() throws InterruptedException {
         //Loops until the buffer is not empty
             //Grabs the messages from the buffer
@@ -102,24 +98,6 @@ public class MessageBuffer {
     public void put(ArrayList<SerializableMessage> messages) {
         MessageHelper.SendMessages(socket,  messages, address.getAddress(), port);
     }
-
-
-    /**
-     * @param type
-     * @param senderId
-     * @param messageID
-     * @param reqID
-     * @param workData
-     */
-    public void put(Signal signal, MessageTypes type, int senderId, String messageID, String reqID, FloorInfoReader.Data workData) throws IOException {
-        ArrayList<SerializableMessage> messages = new ArrayList<>();
-
-        SerializableMessage message = new SerializableMessage(address.getHostName(),port,signal,type, senderId, messageID, reqID, workData);
-        MessageHelper.SendMessage(socket, message, address.getAddress(), port);
-//        MessageHelper.SendMessage(socket, new SerializableMessage(address.getHostName(),port,signal,type, senderId, messageID, reqID, workData), address.getAddress(), port);
-//        messages.add(new SerializableMessage(address.getHostName(),port,state,type, id, workData));
-    }
-
 
 
 }

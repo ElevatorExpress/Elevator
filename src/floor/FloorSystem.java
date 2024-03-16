@@ -99,7 +99,6 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
     public void receiveMessage() {
         while (!requestsBuffer.isEmpty()) {
             //Grab all the messages
-
             SerializableMessage[] receivedMessages = new SerializableMessage[0];
             try {
                 receivedMessages = commBuffer.get();
@@ -111,13 +110,13 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
                 //If the response is a DONE type
                 if (signal == Signal.DONE){
                     //Removes the request via its id
-                    logger.info("Checking if completed: " + elevatorMessages);
-                    logger.info(String.valueOf(requestsBuffer));
+                    logger.info("Checking if completed by Elevator: " + elevatorMessages.senderID() + " On reqID: " + elevatorMessages.reqID());
                     if (requestsBuffer.remove(originalRequestID) == null) {
                         throw new IllegalArgumentException("ID not found in internal request buffer was found in a DONE message. ID: " + originalRequestID);
                     } else {
                         logger.info("Confirmed completed removing from internal list");
                     }
+                    logger.info("Remaining requests to be fulfilled: " + requestsBuffer.size());
                 }
                 //A floor.FloorSystem doesn't need to do anything with other message types
                 else if (signal == Signal.WORKING) {/*Nothing*/}
@@ -140,7 +139,6 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
         MessageBuffer schedulerBuffer = new MessageBuffer(
-                1, // Obsolete
                 "FloorSystem ->",
                 new DatagramSocket(8082),
                 new InetSocketAddress(InetAddress.getLocalHost(), 8080),

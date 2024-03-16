@@ -3,12 +3,20 @@ package elevator;
 import util.Messages.SerializableMessage;
 
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * Creates helps parse a message to create a Request order
+ */
 public class ElevatorRequestOrder {
 
     private static final int MAX_REQUESTS = 5;
+
+    /**
+     * Parses SerializableMessages to create groupings of request orders
+     * @param messageBuffer The message queue that contains the messages to be parsed
+     * @return An array grouping of ordered messages
+     */
     public static synchronized SerializableMessage[] getRequest(LinkedBlockingQueue<SerializableMessage> messageBuffer) {
         if (messageBuffer.peek() == null) return new SerializableMessage[0];
 

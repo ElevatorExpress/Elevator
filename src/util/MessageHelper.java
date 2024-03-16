@@ -20,7 +20,6 @@ public class MessageHelper {
     public static SerializableMessage ReceiveMessage(DatagramSocket socket, byte[] buffer, DatagramPacket packet) {
 
         while (true) {
-            System.out.println("Waiting for packet");
             try {
                 socket.receive(packet);
                 try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer, 0, packet.getLength()))) {
