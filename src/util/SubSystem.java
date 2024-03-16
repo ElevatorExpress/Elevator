@@ -1,5 +1,5 @@
 package util;
-
+@Deprecated()
 public interface SubSystem <T> {
 
     /**
