@@ -4,42 +4,26 @@ import util.Messages.SerializableMessage;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class ElevatorRequestOrder {
 
     private static final int MAX_REQUESTS = 5;
-    public static synchronized SerializableMessage[] getRequest(ConcurrentLinkedQueue<SerializableMessage> messageBuffer) {
-        System.out.println("WAITING");
-        while (messageBuffer.isEmpty()) {}
-        System.out.println("DONE WAITING");
+    public static synchronized SerializableMessage[] getRequest(LinkedBlockingQueue<SerializableMessage> messageBuffer) {
+        if (messageBuffer.peek() == null) return new SerializableMessage[0];
+
         String direction = messageBuffer.peek().data().direction();
-        int startingFloor = Integer.parseInt(messageBuffer.peek().data().requestFloor());
-        ArrayList<SerializableMessage> returnList = new ArrayList<>();
-        returnList.add(messageBuffer.poll());
+        ArrayList<SerializableMessage> groupedRequests = new ArrayList<>();
 
         for (SerializableMessage request : messageBuffer) {
-            if(returnList.size() >= MAX_REQUESTS) {
+            if(groupedRequests.size() >= MAX_REQUESTS) {
                 break;
             }
-            if(direction.equals("up")) {
-                if(request.data().direction().equals(direction)) {
-                    int requestFloor = Integer.parseInt(request.data().requestFloor());
-                    if(requestFloor >= startingFloor) {
-                        returnList.add(messageBuffer.poll());
-                    }
-                }
-            }
-            else {
-                if(request.data().direction().equals(direction)) {
-                    int requestFloor = Integer.parseInt(request.data().requestFloor());
-                    if(requestFloor <= startingFloor) {
-                        returnList.add(messageBuffer.poll());
-                    }
-                }
+            if (request.data().direction().equals(direction)) {
+                groupedRequests.add(request);
+                messageBuffer.remove(request);
             }
         }
-        SerializableMessage[] returnListArray = new SerializableMessage[returnList.size()];
-        returnList.toArray(returnListArray);
-        return returnListArray;
+        return groupedRequests.toArray(new SerializableMessage[0]);
     }
 }

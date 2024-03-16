@@ -99,7 +99,11 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
     public void receiveMessage() {
         while (!requestsBuffer.isEmpty()) {
             //Grab all the messages
-            SerializableMessage[] receivedMessages = commBuffer.get();
+
+            SerializableMessage[] receivedMessages = new SerializableMessage[0];
+            try {
+                receivedMessages = commBuffer.get();
+            } catch (InterruptedException ignored) {}
             //Look through each message
             for (SerializableMessage elevatorMessages : receivedMessages) {
                 String originalRequestID = elevatorMessages.reqID();

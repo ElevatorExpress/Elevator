@@ -1,6 +1,7 @@
 package util;
 
 import elevator.ElevatorRequestOrder;
+import elevator.ElevatorRequestOrder.*;
 import floor.FloorInfoReader;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
@@ -12,6 +13,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Data structure to pass messages within the system
@@ -19,16 +21,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class MessageBuffer {
 
-    //Starts as empty
-    private volatile boolean bufferEmpty = true;
     String bufferName;
-    private volatile int bufferLength = 0;
 
     private DatagramSocket socket;
     private InetSocketAddress address;
     private int port;
 
-    private final ConcurrentLinkedQueue<SerializableMessage> messageBuffer = new ConcurrentLinkedQueue<>();
+    private final LinkedBlockingQueue<SerializableMessage> messageBuffer = new LinkedBlockingQueue<>();
 
     /**
      *
@@ -51,15 +50,7 @@ public class MessageBuffer {
      * @return the length of this buffer
      */
     public synchronized int getBufferLength(){
-        int count = 0;
-        for (SerializableMessage message : messageBuffer) {
-            if (message != null) {
-                count++;
-            }else{
-                break;
-            }
-        }
-        return count;
+        return messageBuffer.size();
     }
 
     public void listenAndFillBuffer(){
@@ -68,12 +59,7 @@ public class MessageBuffer {
                 while (true) {
                     byte[] buff = new byte[1024];
                     SerializableMessage message = MessageHelper.ReceiveMessage(socket, buff, new DatagramPacket(buff, buff.length));
-                    synchronized (messageBuffer) {
-                        messageBuffer.add(message);
-                        messageBuffer.notifyAll();
-                    }
-                    bufferEmpty = false;
-                    bufferLength++;
+                    messageBuffer.put(message);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -87,7 +73,7 @@ public class MessageBuffer {
      * @return if the buffer is empty
      */
     public boolean isBufferEmpty(){
-        return bufferEmpty;
+        return messageBuffer.isEmpty();
     }
 
     /**
@@ -95,31 +81,18 @@ public class MessageBuffer {
      * @return the messages inside the buffer
      */
     //ToDo: I think this will work, I'm hoping that .toArray() will use output params.
-    public SerializableMessage[] get() {
+    public SerializableMessage[] get() throws InterruptedException {
         //Loops until the buffer is not empty
             //Grabs the messages from the buffer
-
             SerializableMessage[] messages = new SerializableMessage[messageBuffer.size()];
-            synchronized (messageBuffer) {
-                while (bufferEmpty){
-                    try {
-                        System.out.println("WAITING IN MESSAGE BUFFER");
-                        messageBuffer.wait();
-                    } catch (InterruptedException ignored) {}
-                }
-                messageBuffer.toArray(messages);
-                messageBuffer.clear();
+            for (int i = 0; i < messages.length; i++) {
+                messages[i] = messageBuffer.take();
             }
-            System.out.println("GOT FROM MESSAGE BUFFER");
-            bufferEmpty = true;
-            bufferLength = 0;
-
             return messages;
-
     }
 
     public SerializableMessage[] getForElevators() {
-        return ElevatorRequestOrder.getRequest(this.messageBuffer);
+        return ElevatorRequestOrder.getRequest(messageBuffer);
     }
 
     /**

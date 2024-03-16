@@ -43,7 +43,7 @@ public class ElevatorRequestTracker {
     }
 
     public int getFloorByStatus() {
-        if (status.equals("Servicing")) {
+        if (status == RequestStatus.SERVICING) {
             return sourceFloor;
         }
         return destFloor;

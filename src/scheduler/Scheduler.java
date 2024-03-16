@@ -133,7 +133,6 @@ public class Scheduler {
                 switch (message.signal()) {
                     case IDLE:
                         idleElevators.put(String.valueOf(message.senderID()), message);
-                        elevatorRequestBuffer.remove(messageId);
                         logger.info("Elevator " + message.senderID() + " is now idle");
                         break;
                     case WORKING:
@@ -150,6 +149,7 @@ public class Scheduler {
                         }
                         //values associated with servicing is the origional message that was sent to the elevator
                         String completedFloorReqID = message.reqID();
+                        elevatorRequestBuffer.remove(messageId);
                         pendingFloorRequests.remove(completedFloorReqID);
 //                        floorOutBuffer.put(new MessageInterface[]{message});
                         InetAddress floorAddr = InetAddress.getByName(message.senderAddr());
@@ -210,7 +210,6 @@ public class Scheduler {
                                 serveFloorRequests();
                         }
                     }
-
 
                 } catch (Exception e) {
                     System.err.println("Error during deserialization: " + e.getMessage());

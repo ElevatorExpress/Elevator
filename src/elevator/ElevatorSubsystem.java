@@ -31,6 +31,7 @@ public class ElevatorSubsystem implements Runnable {
     private ElevatorState currentState;
     private final ElevatorLogger logger;
     private final List<ElevatorRequestTracker> trackRequest = new ArrayList<>();
+    private String msgID;
 
 
     /**
@@ -103,7 +104,9 @@ public class ElevatorSubsystem implements Runnable {
     }
 
     public boolean handleRequestDirection(int minMax, int floor, String direction) {
-        if (direction.equals("up")) return (minMax == 0 || minMax > floor);
+        if (direction.equals("up")) {
+            return (minMax == 0 || minMax > floor);
+        }
         return (minMax == 0 ||  floor > minMax);
     }
     public ElevatorRequestTracker serviceNextRequest() {
@@ -140,8 +143,8 @@ public class ElevatorSubsystem implements Runnable {
     public void sendMessage(Signal state, SerializableMessage floorRequest) {
         try {
             SerializableMessage sm = (state == Signal.IDLE)?
-                    (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, UUID.randomUUID().toString(), null, null)) :
-                    (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, UUID.randomUUID().toString(), floorRequest.reqID(), floorRequest.data()));
+                    (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, msgID, null, null)) :
+                    (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, msgID, floorRequest.reqID(), floorRequest.data()));
 
             logger.info("Elevator is sending message to scheduler");
             queue.put(new ArrayList<>(List.of(sm)));
@@ -156,7 +159,11 @@ public class ElevatorSubsystem implements Runnable {
      */
     public void receiveMessage() {
         logger.info("Elevator receiving message from scheduler");
-        SerializableMessage[] floorRequestMessages = queue.getForElevators(); // groups of request at a time
+        SerializableMessage[] floorRequestMessages;
+        do {
+            floorRequestMessages = queue.getForElevators(); // groups of request at a time
+        } while (floorRequestMessages.length == 0);
+
         Arrays.stream(floorRequestMessages).map(sm -> new ElevatorRequestTracker(RequestStatus.UNSERVICED, sm)).forEach(trackRequest::add);
     }
 
@@ -181,8 +188,10 @@ public class ElevatorSubsystem implements Runnable {
      */
     public void run(){
         currentState = ElevatorState.start(this);
+
         while (true) {
             if (currentState instanceof ElevatorIdle) {
+                msgID = UUID.randomUUID().toString();
                 sendMessage(Signal.IDLE, null);
                 logger.info("Elevator is idle");
                 receiveMessage();
@@ -190,7 +199,6 @@ public class ElevatorSubsystem implements Runnable {
             } else if (currentState instanceof ElevatorWorking) {
                 while (!trackRequest.isEmpty()) {
                     ElevatorRequestTracker trackedFloorRequest = serviceNextRequest();
-
                     if (trackedFloorRequest.getStatus() == RequestStatus.SERVICING) {
                         logger.info("Elevator received request from scheduler: " + trackedFloorRequest.getRequest());
                         sendMessage(Signal.WORKING, trackedFloorRequest.getRequest());
@@ -201,7 +209,6 @@ public class ElevatorSubsystem implements Runnable {
                         logger.info("Elevator is done sending");
                         completeRequestEvent();
                     }
-                    logger.info("TrackRequest:" + trackRequest);
                 }
             }
 
@@ -213,10 +220,12 @@ public class ElevatorSubsystem implements Runnable {
         MessageBuffer queue = new MessageBuffer(1, "ElevatorQueue", new DatagramSocket(8081), new InetSocketAddress(InetAddress.getLocalHost(), 8080), 8080);
         queue.listenAndFillBuffer();
         Thread elevator1 = new Thread(new ElevatorSubsystem(queue, 1), "Elevator1");
-        //Thread elevator2 = new Thread(new ElevatorSubsystem(queue, 2), "Elevator2");
+        Thread elevator2 = new Thread(new ElevatorSubsystem(queue, 2), "Elevator2");
+        Thread elevator3 = new Thread(new ElevatorSubsystem(queue, 3), "Elevator3");
 
         elevator1.start();
-        //elevator2.start();
+        elevator2.start();
+        elevator3.start();
 
     }
 }
