@@ -9,9 +9,7 @@ import util.SubSystem;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.util.*;
 
 /**
@@ -24,13 +22,13 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
     private final MessageBuffer commBuffer;
     private final HashMap<String, SerializableMessage> requestsBuffer;
     public static int PORT = 8082;
-    private static final ElevatorLogger logger = new ElevatorLogger("floor.FloorSystem");
+    private static final ElevatorLogger logger = new ElevatorLogger("FloorSystem");
 
     /**
      * Creates the floor.FloorSystem
      * @param commBuffer Outbound buffer from the perspective of the scheduler. floor.FloorSystem will read messages from here.
      */
-    public FloorSystem(MessageBuffer commBuffer) {
+    public FloorSystem(MessageBuffer commBuffer) throws UnknownHostException {
         this.commBuffer = commBuffer;
         requestsBuffer = new HashMap<>();
         //If there is input for the file throw an exception and stop
@@ -45,7 +43,7 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
     /**
      * Creates messages from an input file.
      */
-    private void createMessages(){
+    private void createMessages() throws UnknownHostException {
         //Gets the iterator for the arraylist of FloorInfoData
         Iterator<FloorInfoReader.Data> iterator = currentFloorInfoReader.getRequestQueue();
         while (iterator.hasNext()) {
@@ -60,18 +58,19 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
             );
 
             //Create a request object with the above info
+            String msgID = UUID.randomUUID().toString();
             SerializableMessage request = new SerializableMessage(
-                    "localhost",
+                    InetAddress.getLocalHost().toString(),
                     PORT,
                     Signal.WORK_REQ,
                     MessageTypes.FLOOR,
                     Integer.parseInt(floorData.serviceFloor()),
-                    UUID.randomUUID().toString(),
-                    Optional.of(UUID.randomUUID().toString()),
-                    Optional.of(data)
+                    msgID,
+                    msgID,
+                    data
             );
 
-            requestsBuffer.putIfAbsent(request.messageID(), request);
+            requestsBuffer.putIfAbsent(request.reqID(), request);
         }
     }
 
@@ -103,12 +102,13 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
             SerializableMessage[] receivedMessages = commBuffer.get();
             //Look through each message
             for (SerializableMessage elevatorMessages : receivedMessages) {
-                String originalRequestID = elevatorMessages.reqID().orElse("-");
+                String originalRequestID = elevatorMessages.reqID();
                 Signal signal = elevatorMessages.signal();
                 //If the response is a DONE type
                 if (signal == Signal.DONE){
                     //Removes the request via its id
                     logger.info("Checking if completed: " + elevatorMessages);
+                    logger.info(String.valueOf(requestsBuffer));
                     if (requestsBuffer.remove(originalRequestID) == null) {
                         throw new IllegalArgumentException("ID not found in internal request buffer was found in a DONE message. ID: " + originalRequestID);
                     } else {
@@ -131,18 +131,15 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
     public String[] sendMessage(SerializableMessage[] message) {
         // Send to scheduler
         commBuffer.put(new ArrayList<>(List.of(message)));
-        return Arrays.stream(message).map(msg -> {
-            assert msg.data().isPresent();
-            return msg.data().toString();
-        }).toArray(String[]::new);
+        return Arrays.stream(message).map(msg -> msg.data().toString()).toArray(String[]::new);
     }
 
-    public static void main(String[] args) throws SocketException {
+    public static void main(String[] args) throws SocketException, UnknownHostException {
         MessageBuffer schedulerBuffer = new MessageBuffer(
                 1, // Obsolete
                 "FloorSystem ->",
                 new DatagramSocket(8082),
-                new InetSocketAddress("localhost", 8080),
+                new InetSocketAddress(InetAddress.getLocalHost(), 8080),
                 8080
         );
 

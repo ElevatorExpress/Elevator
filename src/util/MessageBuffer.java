@@ -11,8 +11,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -68,8 +66,12 @@ public class MessageBuffer {
         Thread t = new Thread(() -> {
             try {
                 while (true) {
-                    SerializableMessage message = MessageHelper.ReceiveMessage(socket, new byte[1024], new DatagramPacket(new byte[1024], 1024));
-                    messageBuffer.add(message);
+                    byte[] buff = new byte[1024];
+                    SerializableMessage message = MessageHelper.ReceiveMessage(socket, buff, new DatagramPacket(buff, buff.length));
+                    synchronized (messageBuffer) {
+                        messageBuffer.add(message);
+                        messageBuffer.notifyAll();
+                    }
                     bufferEmpty = false;
                     bufferLength++;
                 }
@@ -98,30 +100,26 @@ public class MessageBuffer {
             //Grabs the messages from the buffer
 
             SerializableMessage[] messages = new SerializableMessage[messageBuffer.size()];
-            messageBuffer.toArray(messages);
-//            System.arraycopy( messageBuffer.toArray(), 0, messages, 0, bufferLength);
-            // null the buffer
+            synchronized (messageBuffer) {
+                while (bufferEmpty){
+                    try {
+                        System.out.println("WAITING IN MESSAGE BUFFER");
+                        messageBuffer.wait();
+                    } catch (InterruptedException ignored) {}
+                }
+                messageBuffer.toArray(messages);
+                messageBuffer.clear();
+            }
+            System.out.println("GOT FROM MESSAGE BUFFER");
             bufferEmpty = true;
             bufferLength = 0;
-//            notifyAll();
+
             return messages;
 
     }
 
     public SerializableMessage[] getForElevators() {
-        synchronized (messageBuffer) {
-            while(messageBuffer.isEmpty()) {
-                try {
-                    messageBuffer.wait();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            SerializableMessage[] returnList = ElevatorRequestOrder.getRequest(this.messageBuffer);
-            messageBuffer.notifyAll();
-            System.out.println(Arrays.toString(returnList));
-            return returnList;
-        }
+        return ElevatorRequestOrder.getRequest(this.messageBuffer);
     }
 
     /**
@@ -140,7 +138,7 @@ public class MessageBuffer {
      * @param reqID
      * @param workData
      */
-    public void put(Signal signal, MessageTypes type, int senderId, String messageID, Optional<String> reqID, Optional<FloorInfoReader.Data> workData) throws IOException {
+    public void put(Signal signal, MessageTypes type, int senderId, String messageID, String reqID, FloorInfoReader.Data workData) throws IOException {
         ArrayList<SerializableMessage> messages = new ArrayList<>();
 
         SerializableMessage message = new SerializableMessage(address.getHostName(),port,signal,type, senderId, messageID, reqID, workData);

@@ -14,9 +14,9 @@ public class ElevatorRequestTracker {
     private String direction;
 
     ElevatorRequestTracker(RequestStatus status, SerializableMessage request){
-        this.sourceFloor = Integer.parseInt(request.data().get().serviceFloor());
-        this.destFloor = Integer.parseInt(request.data().get().requestFloor());
-        this.direction = request.data().get().direction();
+        this.sourceFloor = Integer.parseInt(request.data().serviceFloor());
+        this.destFloor = Integer.parseInt(request.data().requestFloor());
+        this.direction = request.data().direction();
         this.status = status;
         this.request = request;
 

@@ -17,9 +17,9 @@ public class SchedulerScheduling extends SchedulerState {
      * The sub-states of SchedulerScheduling
      */
     public enum SubState {
-        READING_BUFF,
         SERVING_ELEVATORS,
-        SERVING_FLOORS;
+        SERVING_FLOORS,
+        READ_BUFF;
 
         SubState(){}
 
@@ -28,7 +28,7 @@ public class SchedulerScheduling extends SchedulerState {
          * @return The next state
          */
         private SubState next(){
-            if (this == READING_BUFF) {return SERVING_ELEVATORS;}
+            if (this == READ_BUFF) {return SERVING_ELEVATORS;}
             else if (this == SERVING_ELEVATORS) {return SERVING_FLOORS;}
             else return null;
         }
@@ -38,13 +38,13 @@ public class SchedulerScheduling extends SchedulerState {
          * @return The READING_BUFF state
          */
         private static SubState reset(){
-            return READING_BUFF;
+            return READ_BUFF;
         }
     }
 
     protected SchedulerScheduling(Scheduler ctx) {
         super(ctx);
-        this.internalState = SubState.READING_BUFF;
+        this.internalState = SubState.READ_BUFF;
     }
 
     /**
@@ -63,7 +63,7 @@ public class SchedulerScheduling extends SchedulerState {
      */
     @Override
     public SchedulerState handleDoneServing() {
-        if (internalState == null) internalState = SubState.reset();
+        if (internalState.next() == null) internalState = SubState.reset();
         else internalState = internalState.next();
         return this;
     }

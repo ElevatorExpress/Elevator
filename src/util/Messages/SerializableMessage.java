@@ -3,8 +3,6 @@ package util.Messages;
 import floor.FloorInfoReader;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Optional;
 
 
 /**
@@ -17,5 +15,5 @@ import java.util.Optional;
  * @param messageID UUID for the senders message
  * @param reqID UUID for the request being responded to.
  */
-public record SerializableMessage(String senderAddr, int senderPort, Signal signal, MessageTypes type, int senderID, String messageID, Optional<String> reqID, Optional<FloorInfoReader.Data> data) implements Serializable {
+public record SerializableMessage(String senderAddr, int senderPort, Signal signal, MessageTypes type, int senderID, String messageID, String reqID, FloorInfoReader.Data data) implements Serializable {
 }

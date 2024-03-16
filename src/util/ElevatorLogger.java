@@ -25,7 +25,7 @@ public class ElevatorLogger {
         // TimeUnit is not working on intelliJ JDK 21. Looked online, seems to be a bug.
         long time = (System.nanoTime() - startTime);
         String time_to_write = ((time / 1000000000) > 0) ? time/1000000000 + " s" : time + " ns";
-        System.out.println('[' + internalLoggerName + " - " + time_to_write + "] " + log);
+        System.out.println('[' + time_to_write + " - " + internalLoggerName + "] " + log);
     }
 
     /**

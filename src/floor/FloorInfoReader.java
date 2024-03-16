@@ -68,5 +68,5 @@ public class FloorInfoReader {
      * @param direction does the elevator need to travel up or down
      * @param requestFloor the floor button that will process the request
      */
-    public record Data(String time, String serviceFloor, String direction, String requestFloor) {}
+    public record Data(String time, String serviceFloor, String direction, String requestFloor) implements Serializable{}
 }

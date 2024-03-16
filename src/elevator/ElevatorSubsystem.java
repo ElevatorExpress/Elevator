@@ -41,7 +41,7 @@ public class ElevatorSubsystem implements Runnable {
     public ElevatorSubsystem(MessageBuffer queue, int elevatorId) {
         this.queue = queue;
         this.elevatorId = elevatorId;
-        logger = new ElevatorLogger("elevator.ElevatorSubsystem" + elevatorId);
+        logger = new ElevatorLogger("ElevatorSubsystem" + elevatorId);
         currentState = null;
         buttons = new ElevatorButtonPanel(22);
     }
@@ -52,11 +52,11 @@ public class ElevatorSubsystem implements Runnable {
 
         if (ert.getStatus() == RequestStatus.SERVICING) {
             if (currentFloor != floor) {
-                logger.info(ert.getRequest().data().get().time() + ": Going " + direction + " to floor: " + floor);
+                logger.info(ert.getRequest().data().time() + ": Going " + direction + " to floor: " + floor);
                 travelDelay(floor);
                 logger.info("Arrived at floor " + floor + " to pick up passengers");
             } else {
-                logger.info(ert.getRequest().data().get().time() + " Picking up passengers from floor: " + floor );
+                logger.info(ert.getRequest().data().time() + " Picking up passengers from floor: " + floor );
             }
 
             buttons.turnOnButton( ert.getDestFloor());
@@ -144,8 +144,8 @@ public class ElevatorSubsystem implements Runnable {
                     (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, UUID.randomUUID().toString(), floorRequest.reqID(), floorRequest.data()));
 
             logger.info("Elevator is sending message to scheduler");
-            queue.put((ArrayList<SerializableMessage>) List.of(sm));
-            logger.info("Elevator sent message to scheduler");
+            queue.put(new ArrayList<>(List.of(sm)));
+            logger.info("Elevator sent message to scheduler: " + sm);
         } catch (UnknownHostException ue) {
             System.exit(1);
         }
@@ -158,7 +158,6 @@ public class ElevatorSubsystem implements Runnable {
         logger.info("Elevator receiving message from scheduler");
         SerializableMessage[] floorRequestMessages = queue.getForElevators(); // groups of request at a time
         Arrays.stream(floorRequestMessages).map(sm -> new ElevatorRequestTracker(RequestStatus.UNSERVICED, sm)).forEach(trackRequest::add);
-        logger.info("Elevator received message from scheduler");
     }
 
 
@@ -202,6 +201,7 @@ public class ElevatorSubsystem implements Runnable {
                         logger.info("Elevator is done sending");
                         completeRequestEvent();
                     }
+                    logger.info("TrackRequest:" + trackRequest);
                 }
             }
 
@@ -210,18 +210,13 @@ public class ElevatorSubsystem implements Runnable {
 
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
-        MessageBuffer queue = new MessageBuffer(10, "ElevatorQueue", new DatagramSocket(8081), new InetSocketAddress(InetAddress.getLocalHost(), 8080), 8080);
+        MessageBuffer queue = new MessageBuffer(1, "ElevatorQueue", new DatagramSocket(8081), new InetSocketAddress(InetAddress.getLocalHost(), 8080), 8080);
         queue.listenAndFillBuffer();
         Thread elevator1 = new Thread(new ElevatorSubsystem(queue, 1), "Elevator1");
-        Thread elevator2 = new Thread(new ElevatorSubsystem(queue, 2), "Elevator2");
+        //Thread elevator2 = new Thread(new ElevatorSubsystem(queue, 2), "Elevator2");
 
         elevator1.start();
-        elevator2.start();
-
-
-
-
-
+        //elevator2.start();
 
     }
 }
