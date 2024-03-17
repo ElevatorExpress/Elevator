@@ -7,6 +7,7 @@ public class ElevatorLogger {
     // Name of the Logger
     private final String internalLoggerName;
     private final long startTime;
+    private String colorCode = "";
 
     /**
      * Create a ElevatorLogger
@@ -15,6 +16,16 @@ public class ElevatorLogger {
     public ElevatorLogger(String ownerName) {
         startTime = System.nanoTime();
         internalLoggerName = ownerName;
+    }
+    /**
+     * Create a ElevatorLogger with a color code
+     * @param ownerName The name of the class that owns this Logger
+     * @param colorCode The desired colorCode of the logger name
+     */
+    public ElevatorLogger(String ownerName, String colorCode) {
+        startTime = System.nanoTime();
+        internalLoggerName = ownerName;
+        this.colorCode = colorCode;
     }
 
     /**
@@ -25,7 +36,7 @@ public class ElevatorLogger {
         // TimeUnit is not working on intelliJ JDK 21. Looked online, seems to be a bug.
         long time = (System.nanoTime() - startTime);
         String time_to_write = ((time / 1000000000) > 0) ? time/1000000000 + " s" : time + " ns";
-        System.out.println('[' + time_to_write + " - " + internalLoggerName + "] " + log);
+        System.out.println(colorCode + '[' + time_to_write + " - " + internalLoggerName + "] " + "\u001B[0m" + log );
     }
 
     /**

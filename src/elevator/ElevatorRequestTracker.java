@@ -16,7 +16,7 @@ public class ElevatorRequestTracker {
     private final int destFloor;
     private RequestStatus status;
     private final SerializableMessage request;
-    private String direction;
+    private final String direction;
 
     /**
      * Creates an Elevator Request Tracker

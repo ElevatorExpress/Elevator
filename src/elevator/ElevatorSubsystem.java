@@ -42,7 +42,7 @@ public class ElevatorSubsystem implements Runnable {
     public ElevatorSubsystem(MessageBuffer queue, int elevatorId) {
         this.queue = queue;
         this.elevatorId = elevatorId;
-        logger = new ElevatorLogger("Elevator-" + elevatorId);
+        logger = new ElevatorLogger("Elevator-" + elevatorId, "\u001B[3"+ elevatorId +"m");
         currentState = null;
         buttons = new ElevatorButtonPanel(22);
     }
@@ -57,11 +57,11 @@ public class ElevatorSubsystem implements Runnable {
 
         if (ert.getStatus() == RequestStatus.SERVICING) {
             if (currentFloor != floor) {
-                logger.info(ert.getRequest().data().time() + ": Going " + direction + " to floor: " + floor);
+                logger.info( ert.getRequest().data().time() + ": Going " + direction + " to floor: " + floor);
                 travelDelay(floor);
                 logger.info("Arrived at floor " + floor + " to pick up passengers");
             } else {
-                logger.info(ert.getRequest().data().time() + " Picking up passengers from floor: " + floor );
+                logger.info(ert.getRequest().data().time() + " Picking up passengers from floor: " + floor);
             }
 
             buttons.turnOnButton( ert.getDestFloor());
@@ -69,7 +69,7 @@ public class ElevatorSubsystem implements Runnable {
             if (currentFloor != floor) {
                 logger.info("Going " + direction + " to floor: " + floor);
                 travelDelay(floor);
-                logger.info("Arrived at floor " + floor + " to drop passengers from floor: " + ert.getSourceFloor());
+                logger.info(  "Arrived at floor " + floor + " to drop passengers from floor: " + ert.getSourceFloor());
             } else {
                 logger.info("Dropping passengers to floor " + floor + " from floor: " + ert.getSourceFloor());
             }
@@ -107,6 +107,14 @@ public class ElevatorSubsystem implements Runnable {
         return "down";
     }
 
+    /**
+     * Determines if the lowest or highest floor is desired based on direction.
+     *
+     * @param minMax The current min or max value representing the lowest or highest floor
+     * @param floor The floor used for comparison
+     * @param direction The direction of the floor request
+     * @return A boolean representing if the floor is lower or higher than the current min or max
+     */
     public boolean handleRequestDirection(int minMax, int floor, String direction) {
         if (direction.equals("up")) {
             return (minMax == 0 || minMax > floor);
@@ -156,9 +164,8 @@ public class ElevatorSubsystem implements Runnable {
                     (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, msgID, null, null)) :
                     (new SerializableMessage(InetAddress.getLocalHost().getHostAddress(), 8081, state, MessageTypes.ELEVATOR, elevatorId, msgID, floorRequest.reqID(), floorRequest.data()));
 
-            logger.info("Elevator is sending message to scheduler");
             queue.put(new ArrayList<>(List.of(sm)));
-            logger.info("Elevator sent message to scheduler. Signal: " + sm.signal() + " Data: " + sm.data());
+            logger.info("Elevator sent message to scheduler. Signal: " + sm.signal() + ", Request: " + sm.data());
         } catch (UnknownHostException ue) {
             System.exit(1);
         }
@@ -167,12 +174,15 @@ public class ElevatorSubsystem implements Runnable {
     /**
      * Attempts to get a request
      */
-    public void receiveMessage() {
-        logger.info("Elevator receiving message from scheduler");
+    public synchronized void receiveMessage() {
         SerializableMessage[] floorRequestMessages;
         do {
             floorRequestMessages = queue.getForElevators(); // groups of request at a time
         } while (floorRequestMessages.length == 0);
+        for (SerializableMessage sm : floorRequestMessages) {
+            logger.info("Elevator received request from scheduler. Signal: " + sm.signal() + ", Request: " + sm.data() );
+
+        }
 
         Arrays.stream(floorRequestMessages).map(sm -> new ElevatorRequestTracker(RequestStatus.UNSERVICED, sm)).forEach(trackRequest::add);
     }
@@ -210,13 +220,11 @@ public class ElevatorSubsystem implements Runnable {
                 while (!trackRequest.isEmpty()) {
                     ElevatorRequestTracker trackedFloorRequest = serviceNextRequest();
                     if (trackedFloorRequest.getStatus() == RequestStatus.SERVICING) {
-                        logger.info("Elevator received request from scheduler. Signal: " + trackedFloorRequest.getRequest().signal() + " Data: " + trackedFloorRequest.getRequest().data());
                         sendMessage(Signal.WORKING, trackedFloorRequest.getRequest());
                         goToFloor(trackedFloorRequest);
                     } else {
                         goToFloor(trackedFloorRequest);
                         sendMessage(Signal.DONE, trackedFloorRequest.getRequest());
-                        logger.info("Elevator is done sending");
                         completeRequestEvent();
                     }
                 }
