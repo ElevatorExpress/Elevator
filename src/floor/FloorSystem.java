@@ -116,7 +116,7 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
                     } else {
                         logger.info("Confirmed completed removing from internal list");
                     }
-                    logger.info("Remaining requests to be fulfilled: " + requestsBuffer.size());
+                    logger.info("Remaining requests to be fulfilled: " + requestsBuffer.size() + "\n");
                 }
                 //A floor.FloorSystem doesn't need to do anything with other message types
                 else if (signal == Signal.WORKING) {/*Nothing*/}

@@ -1,5 +1,5 @@
-import floor.FloorInfoReader;
-import floor.FloorSystem;
+package floor;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -8,7 +8,7 @@ import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
 import util.Messages.Signal;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.*;
 import java.util.UUID;
 
@@ -98,25 +98,4 @@ class FloorSystemTest {
         } catch (InterruptedException ignored) {}
     }
 
-    //No way to test floor request receive method on its own - tested startInteraction in place
-//    @Test
-//    void receiveMessage()  {
-//        InetAddress addr = null;
-//        try {
-//            addr = InetAddress.getLocalHost();
-//        }catch (UnknownHostException ignored){}
-//
-//        assert addr != null;
-//        FloorInfoReader.Data data = new FloorInfoReader.Data("4:12", "2", "up", "9");
-//        SerializableMessage sm =  new SerializableMessage(addr.getHostAddress(), 8081, Signal.IDLE, MessageTypes.ELEVATOR, 1, UUID.randomUUID().toString(), UUID.randomUUID().toString(), data);
-//
-//        Thread t = new Thread(() -> floorSystem.receiveMessage());
-//
-//        t.start();
-//        try {
-//            DatagramSocket sendSocket = new DatagramSocket();
-//            SendMessage(sendSocket, sm, InetAddress.getLocalHost(), 8082);
-//            t.join();
-//        } catch (InterruptedException | IOException ignored){}
-//    }
 }

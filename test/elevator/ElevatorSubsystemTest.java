@@ -1,12 +1,13 @@
+package elevator;
+
 import floor.FloorInfoReader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import util.MessageBuffer;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
 import util.Messages.Signal;
-import elevator.ElevatorSubsystem;
-import org.junit.jupiter.api.Test;
-import util.MessageBuffer;
 
 import java.io.IOException;
 import java.net.*;

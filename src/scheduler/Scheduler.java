@@ -51,6 +51,7 @@ public class Scheduler {
 
     private int elevatorSubSystemPort;
     private int floorSubSystemPort;
+    volatile boolean testStopBit;
 
 
     /**
@@ -66,6 +67,7 @@ public class Scheduler {
                 this.elevatorSubSystemPort = elevatorSubSystemPort;
                 inSocket = new DatagramSocket(schedulerPort, schedulerAddr);
                 outSocket = new DatagramSocket();
+                testStopBit = true;
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -167,7 +169,7 @@ public class Scheduler {
         ElevatorLogger tLogger = new ElevatorLogger("ReaderThread");
         byte[] buffer = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        while (true) {
+        while (testStopBit) {
             tLogger.info("Waiting for packet");
             try {
                 inSocket.receive(packet);
@@ -243,16 +245,20 @@ public class Scheduler {
     /**
      * Starts the system
      */
-    public void startSystem() throws InterruptedException {
+    public void startSystem() {
         currentState = SchedulerState.start(this);
-
-        Thread readBufferThread = new Thread(this::readBuffer);
-        readBufferThread.start();
-
-        readBufferThread.join();
+        readBuffer();
+        // Normal function of this class should not  reach this point. This is for testing only
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        inSocket.close();
+        outSocket.close();
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
         Scheduler s = new Scheduler(InetAddress.getLocalHost(),8080, 8081,8082);
         s.startSystem();
     }
