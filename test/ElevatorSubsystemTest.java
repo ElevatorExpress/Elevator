@@ -17,26 +17,22 @@ import static util.MessageHelper.SendMessage;
 
 class ElevatorSubsystemTest {
 
-    static MessageBuffer queue;
     static ElevatorSubsystem elevator;
-    static DatagramSocket socket;
 
     @BeforeAll
     static void createElevatorSystem() {
-        InetAddress addr;
+        MessageBuffer queue;
         try {
-            addr = InetAddress.getLocalHost();
-            socket = new DatagramSocket(8081);
             queue = new MessageBuffer(
-                    1,
                     "ElevatorTest",
-                    socket,
-                    new InetSocketAddress(addr, 8080),
+                    new DatagramSocket(8081),
+                    new InetSocketAddress(InetAddress.getLocalHost(), 8080),
                     8080
             );
+            queue.listenAndFillBuffer();
+            elevator = new ElevatorSubsystem(queue, 1);
         } catch (SocketException | UnknownHostException  ignored) {}
-        queue.listenAndFillBuffer();
-        elevator = new ElevatorSubsystem(queue, 1);
+
     }
 
     @Test
@@ -53,10 +49,11 @@ class ElevatorSubsystemTest {
         Thread t = new Thread(() -> {
             try {
                 byte[] messageArray = new byte[1024];
-                DatagramSocket reviveSocket = new DatagramSocket(8080);
+                DatagramSocket receiveSocket = new DatagramSocket(8080);
                 DatagramPacket receivePacket = new DatagramPacket(messageArray, messageArray.length);
-                SerializableMessage msg = ReceiveMessage(reviveSocket, messageArray, receivePacket);
+                SerializableMessage msg = ReceiveMessage(receiveSocket, messageArray, receivePacket);
                 Assertions.assertEquals(sm, msg);
+                receiveSocket.close();
             } catch (Exception ignored){}
         });
 
