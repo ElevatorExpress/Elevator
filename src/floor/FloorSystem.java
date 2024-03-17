@@ -5,7 +5,6 @@ import util.MessageBuffer;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
 import util.Messages.Signal;
-import util.SubSystem;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -16,7 +15,7 @@ import java.util.*;
  * Represents the Floor
  * @author Mayukh Gautam 101181018
  */
-public class FloorSystem implements SubSystem<SerializableMessage> {
+public class FloorSystem {
 
     private final FloorInfoReader currentFloorInfoReader;
     private final MessageBuffer commBuffer;
@@ -95,7 +94,6 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
      * Retrieves messages from the scheduler's perspective outbound buffer and interprets them.
      * Close requests once they are fulfilled.
      */
-    @Override
     public void receiveMessage() {
         while (!requestsBuffer.isEmpty()) {
             //Grab all the messages
@@ -130,7 +128,6 @@ public class FloorSystem implements SubSystem<SerializableMessage> {
      * @param message Array of messages to be sent
      * @return Data in string form from all sent messages.
      */
-    @Override
     public String[] sendMessage(SerializableMessage[] message) {
         // Send to scheduler
         commBuffer.put(new ArrayList<>(List.of(message)));
