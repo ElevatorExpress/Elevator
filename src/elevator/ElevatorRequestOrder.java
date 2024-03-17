@@ -3,40 +3,35 @@ package elevator;
 import util.Messages.SerializableMessage;
 
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * Creates helps parse a message to create a Request order
+ */
 public class ElevatorRequestOrder {
 
     private static final int MAX_REQUESTS = 5;
-    public static SerializableMessage[] getRequest(ConcurrentLinkedQueue<SerializableMessage> messageBuffer) {
-        String direction = messageBuffer.peek().data().get().direction();
-        int startingFloor = Integer.parseInt(messageBuffer.peek().data().get().requestFloor());
-        ArrayList<SerializableMessage> returnList = new ArrayList<>();
-        returnList.add(messageBuffer.poll());
+
+    /**
+     * Parses SerializableMessages to create groupings of request orders
+     * @param messageBuffer The message queue that contains the messages to be parsed
+     * @return An array grouping of ordered messages
+     */
+    public static synchronized SerializableMessage[] getRequest(LinkedBlockingQueue<SerializableMessage> messageBuffer) {
+        if (messageBuffer.peek() == null) return new SerializableMessage[0];
+
+        String direction = messageBuffer.peek().data().direction();
+        ArrayList<SerializableMessage> groupedRequests = new ArrayList<>();
 
         for (SerializableMessage request : messageBuffer) {
-            if(returnList.size() >= MAX_REQUESTS) {
+            if(groupedRequests.size() >= MAX_REQUESTS) {
                 break;
             }
-            if(direction.equals("up")) {
-                if(request.data().get().direction().equals(direction)) {
-                    int requestFloor = Integer.parseInt(request.data().get().requestFloor());
-                    if(requestFloor >= startingFloor) {
-                        returnList.add(messageBuffer.poll());
-                    }
-                }
-            }
-            else {
-                if(request.data().get().direction().equals(direction)) {
-                    int requestFloor = Integer.parseInt(request.data().get().requestFloor());
-                    if(requestFloor <= startingFloor) {
-                        returnList.add(messageBuffer.poll());
-                    }
-                }
+            if (request.data().direction().equals(direction)) {
+                groupedRequests.add(request);
+                messageBuffer.remove(request);
             }
         }
-        SerializableMessage[] returnListArray = new SerializableMessage[returnList.size()];
-        returnList.toArray(returnListArray);
-        return returnListArray;
+        return groupedRequests.toArray(new SerializableMessage[0]);
     }
 }
