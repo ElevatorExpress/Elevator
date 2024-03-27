@@ -21,6 +21,7 @@ public class FloorSystem {
     private final MessageBuffer commBuffer;
     private final HashMap<String, SerializableMessage> requestsBuffer;
     public static int PORT = 8082;
+    private final Thread senderThread;
     private static final ElevatorLogger logger = new ElevatorLogger("FloorSystem");
 
     /**
@@ -30,6 +31,7 @@ public class FloorSystem {
     public FloorSystem(MessageBuffer commBuffer) throws UnknownHostException {
         this.commBuffer = commBuffer;
         requestsBuffer = new HashMap<>();
+        senderThread = new Thread(this::prepareAndSendMessage);
         //If there is input for the file throw an exception and stop
         try {
             currentFloorInfoReader = new FloorInfoReader(new File("./FloorData.txt"));
@@ -78,16 +80,37 @@ public class FloorSystem {
      */
     private void prepareAndSendMessage(){
         if (!requestsBuffer.isEmpty()){
-            // Ignore unchecked warning, types will always be correct.
-            SerializableMessage[] requests = requestsBuffer.values().toArray(new SerializableMessage[0]);
-            sendMessage(requestsBuffer.values().toArray(requests));
+            SerializableMessage[] sorted = requestsBuffer.values().stream()
+                    .sorted(Comparator.comparingInt((serMessage) -> Integer.parseInt(serMessage.data().time())))
+                    .toArray(SerializableMessage[]::new);
+
+            int cumulativeDelay = 0;
+            for (SerializableMessage message : sorted) {
+                int delaySec = (Integer.parseInt(message.data().time()) * 1000) - cumulativeDelay; // Delays the correct amount of time
+                cumulativeDelay += delaySec;
+                try {
+                    Thread.sleep(delaySec);
+                } catch (InterruptedException ignored) {}
+                sendMessage(new SerializableMessage[]{message});
+                logger.info("SENT MESSAGE: " + message);
+            }
+//            SerializableMessage[] requests = requestsBuffer.values().toArray(new SerializableMessage[0]);
+//            sendMessage(requestsBuffer.values().toArray(requests));
+        } else {
+            throw new RuntimeException("Request buffer was empty, did not send messages");
         }
     }
 
     public void startFloorInteractions(){
         commBuffer.listenAndFillBuffer();
-        prepareAndSendMessage();
+        senderThread.start();
         receiveMessage();
+        try {
+            senderThread.join(1000);
+        } catch (InterruptedException ignored) {}
+        if (senderThread.isAlive()){
+            throw new RuntimeException("senderThread should not still be alive!");
+        }
     }
 
     /**
