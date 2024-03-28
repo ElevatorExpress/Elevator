@@ -55,7 +55,8 @@ public class FloorSystem {
                     floorData.time(),
                     floorData.serviceFloor(),
                     floorData.direction(),
-                    floorData.requestFloor()
+                    floorData.requestFloor(),
+                    floorData.error()
             );
 
             //Create a request object with the above info

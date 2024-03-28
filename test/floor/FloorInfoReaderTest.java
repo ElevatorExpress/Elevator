@@ -13,8 +13,8 @@ import java.util.Iterator;
 class FloorInfoReaderTest {
     static FloorInfoReader reader, emptyReader;
     //Test cases
-    static final String[] requestExpected = {"2:432up3", "3:124down2", "5:151up5", "11:152up4", "12:257down3", "6:163down1", "7:451up5", "8:264down2"};
-    static final String testValues = "2:43  2  up  3 \n3:12  4  down  2\n5:15  1  up  5\n11:15  2  up  4\n  12:25  7  down  3\n6:16   3   down   1\n 7:45  1   up   5\n 8:26  4  down  2  pow";
+    static final String[] requestExpected = {"12up30", "23down21", "42up90", "109down10", "161up82", "168up90", "169down10", "201up110", "2511down10", "301up120"};
+    static final String testValues = "1  2  up  3  0 \n2  3  down  2  1\n4  2  up  9  0\n 10  9  down  1  0\n  16  1  up  8  2\n 16  8  up  9  0\n 16  9  down  1  0\n 20  1  up  11  0\n 25  11  down  1  0\n 30  1  up  12  0";
     static File dataFile = new File("./test/FloorInfoReaderTest.txt");
     static File emptyFile = new File("./test/FloorInfoReaderTestEmpty.txt");
 
@@ -62,6 +62,7 @@ class FloorInfoReaderTest {
             sb.append(currentData.serviceFloor());
             sb.append(currentData.direction());
             sb.append(currentData.requestFloor());
+            sb.append(currentData.error());
 
             //Compares to the expected values
             Assertions.assertEquals(requestExpected[i], sb.toString(), "File did not read correctly");

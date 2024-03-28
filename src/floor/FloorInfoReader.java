@@ -40,14 +40,14 @@ public class FloorInfoReader {
                 floorInfo.add(lineReader.next().trim());
             }
             //If the list is too small throw exception
-            if (floorInfo.size() < 3) {
+            if (floorInfo.size() < 5) {
                 throw new IllegalArgumentException();
             }
             //Adds the completed request to the request list
-            requestQueue.add(new Data(floorInfo.get(0), floorInfo.get(1), floorInfo.get(2), floorInfo.get(3)));
+            requestQueue.add(new Data(floorInfo.get(0), floorInfo.get(1), floorInfo.get(2), floorInfo.get(3), floorInfo.get(4)));
             //If the requestQueue is empty throw exception
         }
-        //If there are no entires in the queue throw an exception
+        //If there are no entries in the queue throw an exception
         if (requestQueue.size() == 0) {
             throw new IllegalArgumentException();
         }
@@ -67,6 +67,7 @@ public class FloorInfoReader {
      * @param serviceFloor the floor the request will be serviced on (where the call button was pressed)
      * @param direction does the elevator need to travel up or down
      * @param requestFloor the floor button that will process the request
+     * @param error used to inject errors into the system
      */
-    public record Data(String time, String serviceFloor, String direction, String requestFloor) implements Serializable{}
+    public record Data(String time, String serviceFloor, String direction, String requestFloor, String error) implements Serializable{}
 }
