@@ -1,12 +1,11 @@
 package scheduler.strategies;
 
-import util.SubSystemSharedState;
 import util.WorkAssignment;
 
 import java.util.*;
 
 public class LoadBalancedStrategy extends AllocationStrategy{
-        LoadBalancedStrategy(SubSystemSharedState sharedState) {
+        public LoadBalancedStrategy() {
             super(sharedState);
         }
 

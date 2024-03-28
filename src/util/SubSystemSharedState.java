@@ -1,15 +1,12 @@
 package util;
 
-import scheduler.Scheduler;
 import scheduler.SchedulerV2;
-import util.states.ElevatorState;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class SubSystemSharedState extends UnicastRemoteObject {
@@ -36,15 +33,15 @@ public class SubSystemSharedState extends UnicastRemoteObject {
         return scheduler.handleECSUpdate();
     }
 
-    public SubSystemSharedState(SchedulerV2 sched) throws RemoteException {
+    public void setScheduler(SchedulerV2 scheduler) {
+        this.scheduler = scheduler;
+    }
+    public SubSystemSharedState() throws RemoteException {
         super();
         elevatorStates = new HashMap<>();
-        scheduler = sched;
     }
 
-    public void addWorkAssignmentBuffer(WorkAssignment workAssignment) {
-        newWorkAssignmentBuffer.add(workAssignment);
-    }
+
 
     public ArrayList<WorkAssignment> flushNewWorkAssignmentBuffer() {
         // Will clearing the buffer also clear temp?
@@ -57,7 +54,7 @@ public class SubSystemSharedState extends UnicastRemoteObject {
         newWorkAssignmentBuffer = workAssignments;
     }
 
-    public ArrayList<WorkAssignment> getWorkAssignmentsBuffer() {
+    public ArrayList<WorkAssignment> getNewWorkAssignmentsBuffer() {
         return newWorkAssignmentBuffer;
     }
 
