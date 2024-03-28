@@ -41,7 +41,7 @@ class FloorSystemTest {
         try {
             addr = InetAddress.getLocalHost();
         }catch (UnknownHostException ignored){}
-        FloorInfoReader.Data data = new FloorInfoReader.Data("4:12", "2", "up", "9");
+        FloorInfoReader.Data data = new FloorInfoReader.Data("4:12", "2", "up", "9", "0");
 
         assert addr != null;
         SerializableMessage sm =  new SerializableMessage(addr.getHostAddress(), 8081, Signal.WORK_REQ, MessageTypes.FLOOR, 2, UUID.randomUUID().toString(), UUID.randomUUID().toString(), data);

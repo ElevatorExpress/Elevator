@@ -51,7 +51,7 @@ class SchedulerTest {
                 1,
                 uuid,
                 uuid,
-                new FloorInfoReader.Data("1", "1", "up", "1")
+                new FloorInfoReader.Data("1", "1", "up", "1", "0")
         );
 
         MessageHelper.SendMessage(floorPortSendSocket, floorMessage, InetAddress.getLocalHost(), 8090);
