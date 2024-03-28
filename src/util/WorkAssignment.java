@@ -17,6 +17,8 @@ public class WorkAssignment {
     private Direction direction;
 
 
+
+
     public WorkAssignment(int serviceFloor, int destinationFloor, String assignmentTimeStamp, Direction direction, String floorRequestId) {
         this.serviceFloor = serviceFloor;
         this.destinationFloor = destinationFloor;

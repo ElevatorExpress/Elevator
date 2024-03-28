@@ -40,6 +40,9 @@ public class SubSystemSharedState extends UnicastRemoteObject {
         this.workAssignments = workAssignments;
     }
 
+
+
+
     public void registerElevator(int elevatorId) {
         elevatorStates.put(elevatorId, new ConcurrentLinkedDeque<>());
     }
