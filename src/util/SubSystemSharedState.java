@@ -1,5 +1,6 @@
 package util;
 
+import scheduler.Scheduler;
 import scheduler.SchedulerV2;
 
 import java.io.IOException;
@@ -18,7 +19,7 @@ public class SubSystemSharedState extends UnicastRemoteObject {
     private HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments;
 
     private ArrayList<WorkAssignment> newWorkAssignmentBuffer;
-    SchedulerV2 scheduler;
+    Scheduler scheduler;
 
 
 
@@ -33,7 +34,7 @@ public class SubSystemSharedState extends UnicastRemoteObject {
         return scheduler.handleECSUpdate();
     }
 
-    public void setScheduler(SchedulerV2 scheduler) {
+    public void setScheduler(Scheduler scheduler) {
         this.scheduler = scheduler;
     }
     public SubSystemSharedState() throws RemoteException {
