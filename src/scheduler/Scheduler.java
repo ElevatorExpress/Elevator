@@ -177,6 +177,7 @@ public class Scheduler {
      * Starts the system
      */
     public void startSystem() {
+        //TODO: Graceful shutdown
         //ToDo: complete SchedulerV2, port changes over to scheduler class so this method can be called.
 //        currentState = SchedulerState.start(this);
 //        readBuffer();
