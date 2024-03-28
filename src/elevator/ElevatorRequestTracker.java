@@ -1,16 +1,19 @@
 package elevator;
 
+import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
+import util.Messages.Signal;
 
 /**
  * Data class for a elevator request
  */
 public class ElevatorRequestTracker {
+
     /**
      * The status of the request
      */
     public enum RequestStatus {
-        UNSERVICED, SERVICING, DONE
+        UNSERVICED, PICKING, DROPPING
     }
     private final int sourceFloor;
     private final int destFloor;
@@ -71,7 +74,7 @@ public class ElevatorRequestTracker {
      * @return The target floor
      */
     public int getFloorByStatus() {
-        if (status == RequestStatus.SERVICING) {
+        if (status == RequestStatus.PICKING) {
             return sourceFloor;
         }
         return destFloor;
@@ -79,9 +82,20 @@ public class ElevatorRequestTracker {
 
     /**
      * Sets the request status
-     * @param status The new status
+     *
      */
+    public void setStatus() {
+        switch (status) {
+            case UNSERVICED -> {
+                setStatus(RequestStatus.PICKING);
+            }
+        }
+    }
+
     public void setStatus(RequestStatus status) {
         this.status = status;
+    }
+    public Signal getSignal() {
+        return request.signal();
     }
 }
