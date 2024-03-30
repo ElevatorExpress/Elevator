@@ -27,7 +27,7 @@ public class ElevatorSubsystem extends Thread {
     private final int elevatorId ;
     private ElevatorState currentState;
     private final ElevatorLogger logger;
-    private final ArrayList<ElevatorRequestTracker> trackRequest;
+    private volatile ArrayList<ElevatorRequestTracker> trackRequest;
     private final ArrayList<WorkAssignment> wa;
     private Direction universalDirection;
     private ElevatorStateUpdate elevatorInfo;
@@ -51,6 +51,9 @@ public class ElevatorSubsystem extends Thread {
         this.ecs = ecs;
     }
 
+    /**
+     * Changes floors
+     */
     private void incrementFloor() {
         //find if current floor and direction matches a request
         boolean majorDelay = false;

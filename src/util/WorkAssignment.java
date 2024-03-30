@@ -3,8 +3,6 @@ package util;
 import util.Messages.Signal;
 
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.util.Objects;
 
 public class WorkAssignment implements Serializable {
     private int serviceFloor;
@@ -26,8 +24,18 @@ public class WorkAssignment implements Serializable {
     private int errorBit;
 
 
-
-
+    /**
+     * Creates a work assignment
+     * @param serviceFloor The floor to service
+     * @param destinationFloor The floor to reach
+     * @param assignmentTimeStamp The time stamp
+     * @param direction The direction of the request
+     * @param floorRequestId The original request ID
+     * @param senderAddr The sender's IP address
+     * @param senderPort The sender's port
+     * @param signal The signal of the message
+     * @param errorBit The test error bit status
+     */
     public WorkAssignment(int serviceFloor, int destinationFloor, String assignmentTimeStamp, Direction direction, String floorRequestId, String senderAddr, int senderPort, Signal signal, int errorBit) {
         this.serviceFloor = serviceFloor;
         this.destinationFloor = destinationFloor;

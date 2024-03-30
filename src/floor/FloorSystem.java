@@ -125,7 +125,7 @@ public class FloorSystem {
                 //If the response is a DONE type
                 if (signal == Signal.DONE){
                     //Removes the request via its id
-                    logger.info("Checking if completed by Elevator: " + elevatorMessage.senderID() + " On reqID: " + requestsBuffer.get(elevatorMessage.reqID()).data());
+                    logger.info("Checking if completed by Elevator: " + elevatorMessage.senderID() + " On reqID: " + elevatorMessage.reqID());
                     if (requestsBuffer.remove(originalRequestID) == null) {
                         throw new IllegalArgumentException("ID not found in internal request buffer was found in a DONE message. ID: " + originalRequestID);
                     } else {

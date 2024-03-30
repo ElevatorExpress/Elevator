@@ -22,6 +22,9 @@ public class ElevatorControlSystem {
     private boolean notified = false;
     private boolean emergency;
 
+    /**
+     * Creates an Elevator Control System
+     */
     public ElevatorControlSystem() throws IOException, NotBoundException, InterruptedException {
         emergency = false;
         elevatorRequests = new ArrayList<>();
@@ -30,6 +33,11 @@ public class ElevatorControlSystem {
         createElevators(3);
 
     }
+
+    /**
+     * Creates the elevators
+     * @param numElevators The amount of elevators to create
+     */
     private void createElevators(int numElevators) throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
         for (int i = 1; i <= numElevators; i++){
@@ -43,6 +51,9 @@ public class ElevatorControlSystem {
         notified = sharedState.ecsUpdate(stateUpdate);
     }
 
+    /**
+     * Assigns Requests to elevators
+     */
     private void AssignRequest() throws RemoteException {
         for (ElevatorSubsystem elevator : elevators) {
             for (WorkAssignment newRequest : sharedState.getWorkAssignments().get(elevator.getElevatorId())) {
@@ -54,6 +65,10 @@ public class ElevatorControlSystem {
         }
     }
 
+    /**
+     * Updates the schedulers with the elevator's states
+     * @return If the scheduler has been notified
+     */
     protected synchronized boolean updateScheduler() throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
         for (ElevatorSubsystem elevator : elevators) {
@@ -69,6 +84,9 @@ public class ElevatorControlSystem {
         return notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
     }
 
+    /**
+     * Runs the system once
+     */
     private void runSystem() throws InterruptedException, IOException {
         if (!emergency){
             if (notified) {
@@ -80,6 +98,11 @@ public class ElevatorControlSystem {
         }
     }
 
+    /**
+     * Declares an elevator broken. Will reassign given requests
+     * @param elevatorId The broken elevator
+     * @param requests The requests to reassign
+     */
     public synchronized void emergencyState(int elevatorId, ArrayList<WorkAssignment> requests) throws RemoteException {
         emergency = true;
         notified = false;

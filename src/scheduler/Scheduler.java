@@ -40,10 +40,13 @@ import util.*;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
 import util.Messages.Signal;
+import util.states.SchedulerScheduling;
 import util.states.SchedulerState;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -113,68 +116,101 @@ public class Scheduler {
         currentState = null; // Started with startSystem()
     }
 
-
+    /**
+     * Handles Elevator Control System Updates
+     * @return True if updated false if not
+     */
     //ToDo: Does the FCS expect something in the data payload? currently it is null on response.
     public boolean handleECSUpdate() throws InterruptedException, IOException {
         boolean updated = false;
         //Check the message buffer for updates. if theres none return false
-        if(!floorMessageBuffer.isBufferEmpty()) {
-            updated = true;
-            //If there is a message in the buffer construct an array of work assignemnts and submit them to allocate, then to the shared state
-            SerializableMessage[] floorReqs = floorMessageBuffer.get();
+        if (currentState instanceof SchedulerScheduling) {
+            if (!floorMessageBuffer.isBufferEmpty()) {
+                updated = true;
+                //If there is a message in the buffer construct an array of work assignemnts and submit them to allocate, then to the shared state
+                SerializableMessage[] floorReqs = floorMessageBuffer.get();
+                doneReading();
 //        ArrayList<WorkAssignment> newWorkAssignments = new ArrayList<>();
-            for (SerializableMessage floorReq : floorReqs) {
-                String reqId = floorReq.reqID();
-                int serviceFloor = floorReq.senderID();
-                int destinationFloor = Integer.parseInt(floorReq.data().requestFloor());
-                String assignmentTimeStamp = floorReq.data().time();
-                Direction direction = Objects.equals(floorReq.data().direction(), "up") ? Direction.UP : Direction.DOWN;
-                Signal signal = floorReq.signal();
-                String floorSenderAddr = floorReq.senderAddr();
-                int floorSenderPort = floorReq.senderPort();
-                int errorBit = Integer.parseInt(floorReq.data().error());
+                for (SerializableMessage floorReq : floorReqs) {
+                    String reqId = floorReq.reqID();
+                    int serviceFloor = floorReq.senderID();
+                    int destinationFloor = Integer.parseInt(floorReq.data().requestFloor());
+                    String assignmentTimeStamp = floorReq.data().time();
+                    Direction direction = Objects.equals(floorReq.data().direction(), "up") ? Direction.UP : Direction.DOWN;
+                    Signal signal = floorReq.signal();
+                    String floorSenderAddr = floorReq.senderAddr();
+                    int floorSenderPort = floorReq.senderPort();
+                    int errorBit = Integer.parseInt(floorReq.data().error());
 
-                WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal, errorBit);
+                    WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal, errorBit);
 
-//            newWorkAssignments.add(wa);
-                //Update the shared object with new work assignments
-                logger.info("New Floor Request: " + wa);
-                allocationStrategy.allocate(wa);
-                sharedState.addNewWorkAssignment(wa);
-            }
-        }
-
-        //iterate through update, check for completed assignments, remove them from the assigned work buffer and respond
-        //to the floor system
-        //
-        if(sharedState.getWorkAssignments() == null) return updated;
-        for (int assignmentKey : sharedState.getWorkAssignments().keySet()) {
-            if (sharedState.getWorkAssignments().get(assignmentKey).isEmpty()) return updated;
-            ConcurrentLinkedDeque<WorkAssignment> wa = sharedState.getWorkAssignments().get(assignmentKey);
-            for (WorkAssignment workAssignment : wa) {
-                assert wa != null;
-                if (workAssignment.isPickupComplete() && workAssignment.isDropoffComplete() && requestSet.add(workAssignment.getFloorRequestId())) {
-                    sharedState.getWorkAssignments().get(assignmentKey).remove();
-                    String floorAddr = workAssignment.getSenderAddr();
-                    int floorPort = workAssignment.getSenderPort();
-                    logger.info(wa + " drop off: " + workAssignment.dropoffComplete);
-                    SerializableMessage message = new SerializableMessage(
-                            floorAddr,
-                            floorPort,
-                            Signal.DONE,
-                            MessageTypes.FLOOR,
-                            assignmentKey,
-                            workAssignment.getFloorRequestId(),
-                            workAssignment.getFloorRequestId(),
-                            null);
-                    MessageHelper.SendMessage(outSocket, message, InetAddress.getLocalHost(), floorSubSystemPort); //scheduler reads it
+    //            newWorkAssignments.add(wa);
+                    //Update the shared object with new work assignments
+                    logger.info("New Floor Request: " + wa);
+                    allocationStrategy.allocate(wa);
+                    sharedState.addNewWorkAssignment(wa);
                 }
+                doneServing();
             }
 
+            //iterate through update, check for completed assignments, remove them from the assigned work buffer and respond
+            //to the floor system
+            //
+            if (sharedState.getWorkAssignments() == null) {
+                doneServing();
+                return updated;
+            }
+            for (int assignmentKey : sharedState.getWorkAssignments().keySet()) {
+                if (sharedState.getWorkAssignments().get(assignmentKey).isEmpty()) {
+                    doneServing();
+                    return updated;
+                }
+                ConcurrentLinkedDeque<WorkAssignment> wa = sharedState.getWorkAssignments().get(assignmentKey);
+                for (WorkAssignment workAssignment : wa) {
+                    assert wa != null;
+                    if (workAssignment.isPickupComplete() && workAssignment.isDropoffComplete() && requestSet.add(workAssignment.getFloorRequestId())) {
+                        sharedState.getWorkAssignments().get(assignmentKey).remove();
+                        String floorAddr = workAssignment.getSenderAddr();
+                        int floorPort = workAssignment.getSenderPort();
+                        logger.info(wa + " drop off: " + workAssignment.dropoffComplete);
+                        SerializableMessage message = new SerializableMessage(
+                                floorAddr,
+                                floorPort,
+                                Signal.DONE,
+                                MessageTypes.FLOOR,
+                                assignmentKey,
+                                workAssignment.getFloorRequestId(),
+                                workAssignment.getFloorRequestId(),
+                                null);
+                        MessageHelper.SendMessage(outSocket, message, InetAddress.getLocalHost(), floorSubSystemPort); //scheduler reads it
+                    }
+                }
+
+            }
+            doneServing();
         }
         return updated;
     }
 
+    /**
+     * Done reading event
+     */
+    private void doneReading() {
+        currentState = currentState.handleDoneReadingRequest();
+    }
+
+    /**
+     * Done serving event
+     */
+    private void doneServing() {
+        currentState = currentState.handleDoneServing();
+    }
+
+    /**
+     * Handle an ECS emergency, reallocates work requests
+     * @param workRequests The work requests to reallocate
+     * @return False if succeeded
+     */
     public boolean handleECSEmergency(ArrayList<WorkAssignment> workRequests) {
         for (WorkAssignment workRequest : workRequests) {
             allocationStrategy.allocate(workRequest);
@@ -190,19 +226,8 @@ public class Scheduler {
     public void startSystem() {
         //TODO: Graceful shutdown
         //ToDo: complete SchedulerV2, port changes over to scheduler class so this method can be called.
-//        currentState = SchedulerState.start(this);
-//        readBuffer();
+        currentState = SchedulerState.start(this);
         floorMessageBuffer.listenAndFillBuffer();
-        //From what I've read, the RMI should be running in the background and manage the thread lifecycle.
-
-        // Normal function of this class should not  reach this point. This is for testing only
-//        try {
-//            Thread.sleep(200);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//        inSocket.close();
-//        outSocket.close();
     }
 
 
