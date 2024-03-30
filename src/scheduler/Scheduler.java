@@ -40,15 +40,17 @@ import util.*;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
 import util.Messages.Signal;
+import util.states.SchedulerScheduling;
 import util.states.SchedulerState;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 
@@ -82,6 +84,7 @@ public class Scheduler {
     private AllocationStrategy allocationStrategy;
 
     private ConcurrentLinkedDeque<WorkAssignment> pendingWorkAssignments;
+    private Set<String> requestSet;
 
 
     /**
@@ -100,9 +103,10 @@ public class Scheduler {
             floorMessageBuffer = new MessageBuffer("FloorMessageBuffer", inSocket, inetSocketAddress, schedulerPort);
             testStopBit = true;
             this.sharedState = sharedState;
-            registry = LocateRegistry.getRegistry();
-            registry.bind("SharedSubSystemState", sharedState);
+            LocateRegistry.createRegistry(1099);
+            Naming.bind("SharedSubSystemState", sharedState);
             assignedWork = new HashMap<>();
+            requestSet = new HashSet<>();
             this.allocationStrategy = allocationStrategy;
             this.sharedState.setScheduler(this);
 //            floorMessageBuffer.listenAndFillBuffer();
@@ -112,63 +116,106 @@ public class Scheduler {
         currentState = null; // Started with startSystem()
     }
 
-
+    /**
+     * Handles Elevator Control System Updates
+     * @return True if updated false if not
+     */
     //ToDo: Does the FCS expect something in the data payload? currently it is null on response.
     public boolean handleECSUpdate() throws InterruptedException, IOException {
         boolean updated = false;
-
         //Check the message buffer for updates. if theres none return false
-        if(!floorMessageBuffer.isBufferEmpty()) {
-            updated = true;
-            //If there is a message in the buffer construct an array of work assignemnts and submit them to allocate, then to the shared state
-            SerializableMessage[] floorReqs = floorMessageBuffer.get();
+        if (currentState instanceof SchedulerScheduling) {
+            if (!floorMessageBuffer.isBufferEmpty()) {
+                updated = true;
+                //If there is a message in the buffer construct an array of work assignemnts and submit them to allocate, then to the shared state
+                SerializableMessage[] floorReqs = floorMessageBuffer.get();
+                doneReading();
 //        ArrayList<WorkAssignment> newWorkAssignments = new ArrayList<>();
-            for (SerializableMessage floorReq : floorReqs) {
-                String reqId = floorReq.reqID();
-                int serviceFloor = floorReq.senderID();
-                int destinationFloor = Integer.parseInt(floorReq.data().requestFloor());
-                String assignmentTimeStamp = floorReq.data().time();
-                Direction direction = Objects.equals(floorReq.data().direction(), "UP") ? Direction.UP : Direction.DOWN;
-                String floorSenderAddr = floorReq.senderAddr();
-                int floorSenderPort = floorReq.senderPort();
+                for (SerializableMessage floorReq : floorReqs) {
+                    String reqId = floorReq.reqID();
+                    int serviceFloor = floorReq.senderID();
+                    int destinationFloor = Integer.parseInt(floorReq.data().requestFloor());
+                    String assignmentTimeStamp = floorReq.data().time();
+                    Direction direction = Objects.equals(floorReq.data().direction(), "up") ? Direction.UP : Direction.DOWN;
+                    Signal signal = floorReq.signal();
+                    String floorSenderAddr = floorReq.senderAddr();
+                    int floorSenderPort = floorReq.senderPort();
+                    int errorBit = Integer.parseInt(floorReq.data().error());
 
-                WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort);
+                    WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal, errorBit);
 
-//            newWorkAssignments.add(wa);
-                assignedWork.put(reqId, wa);
-                //Update the shared object with new work assignments
-                sharedState.addNewWorkAssignment(wa);
+    //            newWorkAssignments.add(wa);
+                    //Update the shared object with new work assignments
+                    logger.info("New Floor Request: " + wa);
+                    allocationStrategy.allocate(wa);
+                    sharedState.addNewWorkAssignment(wa);
+                }
+                doneServing();
             }
-        }
 
-        //iterate through update, check for completed assignments, remove them from the assigned work buffer and respond
-        //to the floor system
-        for (int assignmentKey : sharedState.getWorkAssignments().keySet()) {
-            WorkAssignment wa = sharedState.getWorkAssignments().get(assignmentKey).peek();
-            assert wa != null;
-            if (wa.isPickupComplete() && wa.isDropoffComplete()) {
-                WorkAssignment completedAssignment = assignedWork.remove(wa.getFloorRequestId());
-
-                String floorAddr = completedAssignment.getSenderAddr();
-                //ToDo: POTENTIAL BUG! getbyname may not be correct method
-                InetAddress floorAddress = InetAddress.getByName(floorAddr);
-                int floorPort = completedAssignment.getSenderPort();
-                SerializableMessage message = new SerializableMessage(floorAddr, floorPort, Signal.DONE, MessageTypes.FLOOR, wa.getServiceFloor(), wa.getFloorRequestId(), wa.getFloorRequestId(), null);
-                MessageHelper.SendMessage(outSocket, message, floorAddress, floorSubSystemPort);
-            }else {
-                String floorAddr = wa.getSenderAddr();
-                //ToDo: POTENTIAL BUG! getbyname may not be correct method
-                InetAddress floorAddress = InetAddress.getByName(floorAddr);
-                int floorPort = wa.getSenderPort();
-                SerializableMessage message = new SerializableMessage(floorAddr, floorPort, Signal.WORKING, MessageTypes.FLOOR, wa.getServiceFloor(), wa.getFloorRequestId(), wa.getFloorRequestId(), null);
-
-                MessageHelper.SendMessage(outSocket, message, floorAddress, floorSubSystemPort);
+            //iterate through update, check for completed assignments, remove them from the assigned work buffer and respond
+            //to the floor system
+            //
+            if (sharedState.getWorkAssignments() == null) {
+                doneServing();
+                return updated;
             }
+            for (int assignmentKey : sharedState.getWorkAssignments().keySet()) {
+                if (sharedState.getWorkAssignments().get(assignmentKey).isEmpty()) {
+                    doneServing();
+                    return updated;
+                }
+                ConcurrentLinkedDeque<WorkAssignment> wa = sharedState.getWorkAssignments().get(assignmentKey);
+                for (WorkAssignment workAssignment : wa) {
+                    assert wa != null;
+                    if (workAssignment.isPickupComplete() && workAssignment.isDropoffComplete() && requestSet.add(workAssignment.getFloorRequestId())) {
+                        sharedState.getWorkAssignments().get(assignmentKey).remove();
+                        String floorAddr = workAssignment.getSenderAddr();
+                        int floorPort = workAssignment.getSenderPort();
+                        logger.info(wa + " drop off: " + workAssignment.dropoffComplete);
+                        SerializableMessage message = new SerializableMessage(
+                                floorAddr,
+                                floorPort,
+                                Signal.DONE,
+                                MessageTypes.FLOOR,
+                                assignmentKey,
+                                workAssignment.getFloorRequestId(),
+                                workAssignment.getFloorRequestId(),
+                                null);
+                        MessageHelper.SendMessage(outSocket, message, InetAddress.getLocalHost(), floorSubSystemPort); //scheduler reads it
+                    }
+                }
+
+            }
+            doneServing();
         }
-
-
         return updated;
+    }
 
+    /**
+     * Done reading event
+     */
+    private void doneReading() {
+        currentState = currentState.handleDoneReadingRequest();
+    }
+
+    /**
+     * Done serving event
+     */
+    private void doneServing() {
+        currentState = currentState.handleDoneServing();
+    }
+
+    /**
+     * Handle an ECS emergency, reallocates work requests
+     * @param workRequests The work requests to reallocate
+     * @return False if succeeded
+     */
+    public boolean handleECSEmergency(ArrayList<WorkAssignment> workRequests) {
+        for (WorkAssignment workRequest : workRequests) {
+            allocationStrategy.allocate(workRequest);
+        }
+        return false;
     }
 
 
@@ -179,28 +226,19 @@ public class Scheduler {
     public void startSystem() {
         //TODO: Graceful shutdown
         //ToDo: complete SchedulerV2, port changes over to scheduler class so this method can be called.
-//        currentState = SchedulerState.start(this);
-//        readBuffer();
+        currentState = SchedulerState.start(this);
         floorMessageBuffer.listenAndFillBuffer();
-        //From what I've read, the RMI should be running in the background and manage the thread lifecycle.
-
-        // Normal function of this class should not  reach this point. This is for testing only
-//        try {
-//            Thread.sleep(200);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//        inSocket.close();
-//        outSocket.close();
     }
 
 
     public static void main(String[] args) throws IOException {
-        AllocationStrategy allocationStrategy1 = new LoadBalancedStrategy();
         SubSystemSharedState sharedState = new SubSystemSharedState();
-        Scheduler s = new Scheduler(InetAddress.getLocalHost(),8080, 8081,allocationStrategy1,sharedState);
+        AllocationStrategy allocationStrategy1 = new LoadBalancedStrategy(sharedState);
+        Scheduler s = new Scheduler(InetAddress.getLocalHost(),8080, 8082,allocationStrategy1,sharedState);
 
         s.startSystem();
     }
+
+
 }
 

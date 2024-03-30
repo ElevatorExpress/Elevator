@@ -87,9 +87,9 @@ public class MessageBuffer {
             return messages;
     }
 
-    public SerializableMessage[] getForElevators() {
-        return ElevatorRequestOrder.getRequest(messageBuffer);
-    }
+//    public SerializableMessage[] getForElevators() {
+//        return ElevatorRequestOrder.getRequest(messageBuffer);
+//    }
 
     /**
      * Waits until buffer is available then fills it with messages

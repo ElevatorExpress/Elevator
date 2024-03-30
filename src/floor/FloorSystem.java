@@ -51,13 +51,6 @@ public class FloorSystem {
 
             // Recreating floor data
             FloorInfoReader.Data floorData = iterator.next();
-            FloorInfoReader.Data data = new FloorInfoReader.Data(
-                    floorData.time(),
-                    floorData.serviceFloor(),
-                    floorData.direction(),
-                    floorData.requestFloor(),
-                    floorData.error()
-            );
 
             //Create a request object with the above info
             String msgID = UUID.randomUUID().toString();
@@ -69,7 +62,7 @@ public class FloorSystem {
                     Integer.parseInt(floorData.serviceFloor()),
                     msgID,
                     msgID,
-                    data
+                    floorData
             );
 
             requestsBuffer.putIfAbsent(request.reqID(), request);
@@ -126,13 +119,13 @@ public class FloorSystem {
                 receivedMessages = commBuffer.get();
             } catch (InterruptedException ignored) {}
             //Look through each message
-            for (SerializableMessage elevatorMessages : receivedMessages) {
-                String originalRequestID = elevatorMessages.reqID();
-                Signal signal = elevatorMessages.signal();
+            for (SerializableMessage elevatorMessage : receivedMessages) {
+                String originalRequestID = elevatorMessage.reqID();
+                Signal signal = elevatorMessage.signal();
                 //If the response is a DONE type
                 if (signal == Signal.DONE){
                     //Removes the request via its id
-                    logger.info("Checking if completed by Elevator: " + elevatorMessages.senderID() + " On reqID: " + elevatorMessages.reqID());
+                    logger.info("Checking if completed by Elevator: " + elevatorMessage.senderID() + " On reqID: " + elevatorMessage.reqID());
                     if (requestsBuffer.remove(originalRequestID) == null) {
                         throw new IllegalArgumentException("ID not found in internal request buffer was found in a DONE message. ID: " + originalRequestID);
                     } else {
