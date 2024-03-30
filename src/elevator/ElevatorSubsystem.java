@@ -12,7 +12,6 @@ import util.states.ElevatorWorking;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 /**
  * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
@@ -110,7 +109,7 @@ public class ElevatorSubsystem extends Thread {
                 wa.forEach(workAssignment -> logger.info("Work: " + workAssignment + " " + workAssignment.getSignal()));
                 elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                 elevatorInfo.setStateSignal(Signal.EMERG);
-                ecs.emergencyState(elevatorId, wa.stream().filter((workAssignment -> workAssignment.getSignal() == Signal.WORK_REQ)).collect(Collectors.toCollection(ArrayList::new)));
+                ecs.emergencyState(elevatorId, wa);
                 trackRequest.clear();
             }
         } catch (InterruptedException | IOException e) {
@@ -245,7 +244,9 @@ public class ElevatorSubsystem extends Thread {
         wa.add(newRequest);
         if (universalDirection == Direction.ANY) universalDirection = newRequest.getDirection();
         synchronized (trackRequest) {
-            trackRequest.add(new ElevatorRequestTracker(RequestStatus.PICKING, newRequest));
+            if (newRequest.getSignal() == Signal.WORK_REQ) {
+                trackRequest.add(new ElevatorRequestTracker(RequestStatus.PICKING, newRequest));
+            }
         }
         logger.info("Elevator received request from scheduler. Signal: " + newRequest.getSignal() + ", Request: " + newRequest + " requests size:" + trackRequest.size());
     }

@@ -179,7 +179,7 @@ public class Scheduler {
         for (WorkAssignment workRequest : workRequests) {
             allocationStrategy.allocate(workRequest);
         }
-        return true;
+        return false;
     }
 
 
