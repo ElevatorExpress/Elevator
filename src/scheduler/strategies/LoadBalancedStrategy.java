@@ -6,6 +6,9 @@ import util.WorkAssignment;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+/**
+ * Class for splitting requests among the elevators
+ */
 public class LoadBalancedStrategy extends AllocationStrategy{
     /**
      * Creates a LoadBalancedStrategy
@@ -17,7 +20,7 @@ public class LoadBalancedStrategy extends AllocationStrategy{
 
     /**
      * Allocates work assignments
-     * @param workAssignment The wor assignment to allocate
+     * @param workAssignment The work assignment to allocate
      */
     @Override
     public void allocate(WorkAssignment workAssignment) {

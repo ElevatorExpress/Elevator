@@ -14,13 +14,10 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author Connor Beleznay
  */
 public class MessageBuffer {
-
     String bufferName;
-
     private final DatagramSocket socket;
     private final InetSocketAddress address;
     private final int port;
-
     private final LinkedBlockingQueue<SerializableMessage> messageBuffer = new LinkedBlockingQueue<>();
 
     /**
@@ -55,7 +52,9 @@ public class MessageBuffer {
                 while (true) {
                     byte[] buff = new byte[1024];
                     logger.info("Waiting for packet");
+                    //Listens for messages
                     SerializableMessage message = MessageHelper.ReceiveMessage(socket, buff, new DatagramPacket(buff, buff.length));
+                    //Add said messages to the buffer
                     messageBuffer.put(message);
                 }
             } catch (Exception e) {
@@ -86,10 +85,6 @@ public class MessageBuffer {
             }
             return messages;
     }
-
-//    public SerializableMessage[] getForElevators() {
-//        return ElevatorRequestOrder.getRequest(messageBuffer);
-//    }
 
     /**
      * Waits until buffer is available then fills it with messages

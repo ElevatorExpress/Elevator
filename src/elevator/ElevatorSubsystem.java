@@ -21,30 +21,35 @@ import java.util.ArrayList;
  * @author Yasir Sheikh
  */
 public class ElevatorSubsystem extends Thread {
-
+    //Elevators start at the bottom floor
     private Integer currentFloor = 1;
     private final ElevatorButtonPanel buttons;
-    private final int elevatorId ;
+    private final int elevatorId;
     private ElevatorState currentState;
+    //Used to output information
     private final ElevatorLogger logger;
     private volatile ArrayList<ElevatorRequestTracker> trackRequest;
+    //List of assignments for the elevator
     private final ArrayList<WorkAssignment> wa;
+    //Current direction of the elevator
     private Direction universalDirection;
     private ElevatorStateUpdate elevatorInfo;
+    //Our simulated building has 22 floors
     private final int MAX_LEVEL = 22;
-    private final ElevatorControlSystem  ecs;
+    private final ElevatorControlSystem ecs;
 
 
     /**
      * Creates an elevator
-     *
      * @param elevatorId The elevator ID number
+     * @param ecs the ElevatorControlSystem that manages the elevator
      */
     public ElevatorSubsystem(int elevatorId, ElevatorControlSystem ecs) {
         this.elevatorId = elevatorId;
         logger = new ElevatorLogger("Elevator-" + elevatorId, "\u001B[3"+ elevatorId +"m");
         currentState = null;
         buttons = new ElevatorButtonPanel(MAX_LEVEL);
+        //Direction is not picked yet
         universalDirection = Direction.ANY;
         trackRequest = new ArrayList<>();
         wa = new ArrayList<>();
@@ -55,20 +60,25 @@ public class ElevatorSubsystem extends Thread {
      * Changes floors
      */
     private void incrementFloor() {
-        //find if current floor and direction matches a request
         boolean majorDelay = false;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
+            //If the current request matches the direction of the elevator
             if (ert.getDirection() == universalDirection) {
+                //If the elevator is at the floor it is expecting to pick up passengers
                 if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
                     int errorBit = ert.getRequest().getErrorBit();
+                    //If an error was injected
                     if (errorBit == 2){
                         majorDelay = true;
+                        //Remove the flagged request from the list
                         wa.remove(ert.getRequest());
-                    }  // Don't do soft fault if this is a hard fault
+                    }
 
+                    //Simulates the doors opening at a floor
                     verifyDoorDelay(errorBit);
 
+                    //If there are no errors signal that the passengers were picked up
                     wa.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
                             workAssignment.setPickupComplete();
@@ -76,15 +86,22 @@ public class ElevatorSubsystem extends Thread {
                         }
                     });
 
+                    //Send state update
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
+                    //Output what happened
                     logger.info("Arrived at floor " + ert.getSourceFloor() + " to pick up passengers");
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
                 }
+                //If the elevator is at the floor it is expecting to drop off passengers
                 else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
+                    //Check error bit of the request
                     int errorBit = ert.getRequest().getErrorBit();
+                    //Simulate dropping passengers off
                     verifyDoorDelay(errorBit);
+                    //Output what happened
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
+                    //Mark request as complete
                     ert.setStatus(RequestStatus.DONE);
                     wa.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
@@ -92,27 +109,37 @@ public class ElevatorSubsystem extends Thread {
                             workAssignment.setSignal(Signal.DONE);
                         }
                     });
+                    //Signal that the elevator is done
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                     elevatorInfo.setStateSignal(Signal.DONE);
+                    //Remove the completed request
                     trackRequest.remove(ert);
                 }
             }
         }
 
+        //If the elevator reaches the top floor, swap its direction to down
         if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP) universalDirection = Direction.DOWN;
+        //If the elevator reaches the bottom floor, swap its direction to up
         else if (currentFloor == 0 && universalDirection == Direction.DOWN) universalDirection = Direction.UP;
 
-        // Delay for a floor. Catches hard faults
+        // Delay for travel time between each floor. Catches hard faults
         try {
             boolean finalMajorDelay = majorDelay;
+            //Sets a timer depending on if there is an error
             Thread travelDelayThread = new Thread(() -> this.travelDelay(finalMajorDelay));
+            //Start the timer
             travelDelayThread.start();
+            //If the timer is running for more than 5s a hard fault occurred
             travelDelayThread.join(5000);
             if (travelDelayThread.isAlive()){
+                //Output what happened
                 logger.info("HARD FAULT has occurred, elevator took too long to reach destination");
+                //Signal elevator had a fault
                 elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                 elevatorInfo.setStateSignal(Signal.EMERG);
                 ecs.emergencyState(elevatorId, wa);
+                //Clear out the requests of this elevator
                 trackRequest.clear();
             }
         } catch (InterruptedException | IOException e) {
@@ -120,18 +147,29 @@ public class ElevatorSubsystem extends Thread {
         }
     }
 
+    /**
+     * Simulates the delay on opening the doors of an elevator
+     * @param errorBit 0 1 or 2 depending on which error is injected
+     */
     private void verifyDoorDelay(int errorBit) {
         try {
             boolean completed = false;
             while (!completed) {
                 int finalErrorBit = errorBit;
+                //Changes the timer based on if there is an error injected
                 Thread doorDelayThread = new Thread(() -> this.doorDelay(finalErrorBit == 1));
+                //Start the timer and wait the delay
                 doorDelayThread.start();
                 doorDelayThread.join(12600);
+                //If the thread is still active after the delay an error has occurred
                 if (doorDelayThread.isAlive()) {
+                    //Output what happened
                     logger.info("SOFT FAULT has occurred, retrying doors");
+                    //The doors will close on the next try
                     if (errorBit == 1) errorBit = 0;
-                } else {
+                }
+                //If the thread completes, the doors closed correctly
+                else {
                     completed = true;
                 }
             }
@@ -141,17 +179,21 @@ public class ElevatorSubsystem extends Thread {
     }
 
     /**
-     * Simulates the delay an elevator would need to reach a specific floor
-     *
+     * Simulates the delay an elevator would need to travel to a floor
      */
     private void travelDelay(boolean hasError) {
         try {
+            //Normal delay of each floor
             if (!hasError) { Thread.sleep((long) (1000 * ((4L / 2.53)))); }
+            //If there is an error being injected
             else { Thread.sleep(6000); }
 
+            //If the elevator is going up
             if (universalDirection == Direction.UP) {
+                //Increment floor
                 currentFloor++;
             } else {
+                //Decrement floor
                 currentFloor--;
             }
 
@@ -159,9 +201,15 @@ public class ElevatorSubsystem extends Thread {
         catch (InterruptedException ignored) {}
     }
 
+    /**
+     * Simulates the delay of a door opening
+     * @param hasError if an error is getting injected
+     */
     private void doorDelay(boolean hasError) {
         try {
+            //If there is no error the door cycle will take 12.5s
             if (!hasError) { Thread.sleep(12580); }
+            //If there is an error delay extra time
             else { Thread.sleep(15000); }
         } catch (InterruptedException ignored){}
     }
@@ -201,19 +249,21 @@ public class ElevatorSubsystem extends Thread {
      * @return The next request
      */
     public ElevatorRequestTracker serviceNextRequest() {
+        //This is the next floor that the elevator will stop at
         int minMax = 0;
         ElevatorRequestTracker nextRequest = null;
         ArrayList<ElevatorRequestTracker> dummyRequestList = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyRequestList) {
             switch (ert.getStatus()) {
                 case UNSERVICED, PICKING -> {
+                    //Figure out which way the elevator is moving and set the next stop
                     if (handleRequestDirection(minMax, ert.getSourceFloor())) {
                         minMax = ert.getSourceFloor();
                         nextRequest = ert;
-
                     }
                 }
                 case DROPPING-> {
+                    //Figure out which way the elevator is moving and set the next stop
                     if (handleRequestDirection(minMax, ert.getDestFloor())){
                         minMax = ert.getDestFloor();
                         nextRequest = ert;
@@ -222,19 +272,27 @@ public class ElevatorSubsystem extends Thread {
             }
         }
 
+        //Grab the next request
         assert nextRequest != null;
         nextRequest.setStatus();
         return nextRequest;
     }
 
+    /**
+     * Gets requests from the Scheduler and tracks them
+     * @param newRequest the request that is going to be tracked
+     */
     protected void addTrackedRequest(WorkAssignment newRequest) {
         wa.add(newRequest);
+        //Sets the direction of the elevator if it does not have one
         if (universalDirection == Direction.ANY) universalDirection = newRequest.getDirection();
+        //Grabs the lock for the trackRequest and add the request to it
         synchronized (trackRequest) {
             if (newRequest.getSignal() == Signal.WORK_REQ) {
                 trackRequest.add(new ElevatorRequestTracker(RequestStatus.PICKING, newRequest));
             }
         }
+        //Output what happened
         logger.info("Elevator received request from scheduler. Signal: " + newRequest.getSignal() + ", Request: " + newRequest + " requests size:" + trackRequest.size());
     }
 
@@ -263,6 +321,10 @@ public class ElevatorSubsystem extends Thread {
         return elevatorInfo;
     }
 
+    /**
+     * Gets the elevatorId of this elevator
+     * @return this elevatorId
+     */
     public int getElevatorId() {
         return elevatorId;
     }
@@ -273,26 +335,34 @@ public class ElevatorSubsystem extends Thread {
      */
     @Override
     public void run(){
+        //Start the elevator
         currentState = ElevatorState.start(this);
 
+        //Run forever
         while (true) {
+            //If the elevator is idle
             if (currentState instanceof ElevatorIdle) {
+                //Make new update event with corresponding values
                 elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, wa);
+                //Set elevator state
                 elevatorInfo.setStateSignal(Signal.IDLE);
                 logger.info("Elevator is idle");
+                //Receive requests from the scheduler
                 receiveMessage();
                 receiveRequestEvent();
             } else if (currentState instanceof ElevatorWorking) {
+                //Make new update event with corresponding values
                 elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
+                //Set elevator state
                 elevatorInfo.setStateSignal(Signal.WORKING);
+                //Make the elevator move until there are no requests left
                 while (!trackRequest.isEmpty()) {
                     incrementFloor();
                 }
+                //Signal that requests are all complete
                 completeRequestEvent();
             }
         }
     }
-
-
 
 }

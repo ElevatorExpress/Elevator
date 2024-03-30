@@ -4,12 +4,16 @@ import java.util.HashMap;
 
 /**
  * Class that represents the panel of elevator buttons in an elevator
+ * @author Joshua Braddon
  */
 public class ElevatorButtonPanel {
     //The mapping will be floor -> on/off
     private HashMap<Integer, String> buttons = new HashMap<>();
 
-    //Creates the panel with the given number of floors
+    /**
+     * Creates the panel with the given number of floors
+     * @param size number of floors
+     */
     public ElevatorButtonPanel(int size) {
         for(int i = 0; i < size; i++) {
             buttons.put(i + 1, "off");

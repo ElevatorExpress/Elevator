@@ -48,7 +48,7 @@ public class FloorInfoReader {
             //If the requestQueue is empty throw exception
         }
         //If there are no entries in the queue throw an exception
-        if (requestQueue.size() == 0) {
+        if (requestQueue.isEmpty()) {
             throw new IllegalArgumentException();
         }
     }

@@ -8,6 +8,7 @@ import util.WorkAssignment;
 
 /**
  * Data class for a elevator request
+ * @author Yasir Sheikh
  */
 public class ElevatorRequestTracker {
 
@@ -17,10 +18,16 @@ public class ElevatorRequestTracker {
     public enum RequestStatus {
         UNSERVICED, PICKING, DROPPING, DONE
     }
+
+    //Floor that the elevator is going to pick up people from
     private final int sourceFloor;
+    //Floor that the elevator is going to drop people off at
     private final int destFloor;
+    //Current stats us the request
     private RequestStatus status;
+    //The request being tracked
     private final WorkAssignment request;
+    //Direction of request
     private final Direction direction;
 
     /**
@@ -75,6 +82,7 @@ public class ElevatorRequestTracker {
      * @return The target floor
      */
     public int getFloorByStatus() {
+        //PICKING state represents a request that has been received, but the passengers have not been grabbed
         if (status == RequestStatus.PICKING) {
             return sourceFloor;
         }
@@ -83,7 +91,6 @@ public class ElevatorRequestTracker {
 
     /**
      * Sets the request status
-     *
      */
     public void setStatus() {
         switch (status) {
@@ -93,16 +100,31 @@ public class ElevatorRequestTracker {
         }
     }
 
+    /**
+     * Sets the status of this tracker
+     * @param status the status being set
+     */
+    public void setStatus(RequestStatus status) {
+        this.status = status;
+    }
+
+    /**
+     * Get signal of current request
+     * @return the signal
+     */
+    public Signal getSignal() {
+        return request.getSignal();
+    }
+
+    /**
+     * Equals method from this object
+     * @param obj the object being compared to
+     * @return true is the objects are equal, false otherwise
+     */
     public boolean equals(WorkAssignment obj) {
         if (!(sourceFloor == obj.getServiceFloor())) return false;
         if (!(destFloor == obj.getDestinationFloor())) return false;
         return direction == obj.getDirection();
     }
 
-    public void setStatus(RequestStatus status) {
-        this.status = status;
-    }
-    public Signal getSignal() {
-        return request.getSignal();
-    }
 }

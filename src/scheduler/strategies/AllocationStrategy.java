@@ -3,6 +3,9 @@ package scheduler.strategies;
 import util.SubSystemSharedState;
 import util.WorkAssignment;
 
+/**
+ * Class for allocating requests
+ */
 public abstract class AllocationStrategy {
     protected SubSystemSharedState sharedState;
 
