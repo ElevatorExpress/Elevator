@@ -14,6 +14,7 @@ import java.io.Serializable;
  * @param senderID Int representing the sender's ID ie floor number
  * @param messageID UUID for the senders message
  * @param reqID UUID for the request being responded to.
+ * @param data Data from the request
  */
 public record SerializableMessage(String senderAddr, int senderPort, Signal signal, MessageTypes type, int senderID, String messageID, String reqID, FloorInfoReader.Data data) implements Serializable {
 }

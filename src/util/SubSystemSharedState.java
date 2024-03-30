@@ -32,7 +32,7 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     }
 
     /**
-     *  Notifies shared object. ECS had an emergency
+     * Notifies shared object. ECS had an emergency
      * @param workRequests To be re allocated
      * @return false if succeeded
      */

@@ -12,24 +12,31 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+/**
+ * Class for managing elevators
+ * @author Yasir Sheikh
+ */
 public class ElevatorControlSystem {
 
-    // Some code to handle shared object
-
+    //List of elevator requests
     private final ArrayList<WorkAssignment> elevatorRequests;
     private final ArrayList<ElevatorSubsystem> elevators;
     private final SubSystemSharedStateInterface sharedState;
     private boolean notified = false;
+    //If there is a fault on an elevator
     private boolean emergency;
 
     /**
      * Creates an Elevator Control System
      */
     public ElevatorControlSystem() throws IOException, NotBoundException, InterruptedException {
+        //No fault by default
         emergency = false;
         elevatorRequests = new ArrayList<>();
         elevators = new ArrayList<>();
+        //Grab state from shared object
         sharedState = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedSubSystemState");
+        //Create individual elevators
         createElevators(3);
 
     }
@@ -40,14 +47,20 @@ public class ElevatorControlSystem {
      */
     private void createElevators(int numElevators) throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
+        //For each elevator
         for (int i = 1; i <= numElevators; i++){
+            //Add to elevator list
             elevators.add(new ElevatorSubsystem(i, this));
+            //Start the elevator
             elevators.get(i - 1).start();
             elevators.get(i - 1).setName("Elevator" + i);
+            //Create work list for elevator
             sharedState.setWorkAssignmentQueue(i, new ConcurrentLinkedDeque<>());
+            //Add elevator state to update object
             stateUpdate.put(i , elevators.get(i - 1).getElevatorInfo());
             sharedState.addElevatorState(i, elevators.get(i - 1).getElevatorInfo());
         }
+        //Update shared object
         notified = sharedState.ecsUpdate(stateUpdate);
     }
 
@@ -55,9 +68,13 @@ public class ElevatorControlSystem {
      * Assigns Requests to elevators
      */
     private void AssignRequest() throws RemoteException {
+        //Each elevator looks into the request queue
         for (ElevatorSubsystem elevator : elevators) {
+            //Checks each request in the WorkAssignment list that is tied to the current elevator ID
             for (WorkAssignment newRequest : sharedState.getWorkAssignments().get(elevator.getElevatorId())) {
+                //If the request does not already exist
                 if (!elevatorRequests.contains(newRequest)) {
+                    //Give the request to the elevator
                     elevator.addTrackedRequest(newRequest);
                     elevatorRequests.add(newRequest);
                 }
@@ -72,16 +89,15 @@ public class ElevatorControlSystem {
     protected synchronized boolean updateScheduler() throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
         for (ElevatorSubsystem elevator : elevators) {
+            //Gets info from elevator
             ElevatorStateUpdate elevatorStateUpdate = elevator.getElevatorInfo();
+            //Fill the map with elevator id/state and request list pairs
             stateUpdate.put(elevator.getElevatorId(), elevatorStateUpdate);
             sharedState.addElevatorState(elevator.getElevatorId(),elevatorStateUpdate);
-//            System.out.println(elevator.getElevatorId() + " " + elevatorStateUpdate.getWorkAssignments());
-//            if (stateUpdate.get(elevator.getElevatorId()).getStateSignal() != Signal.IDLE)
-            sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments())); // elevatorStateUpdate.getWorkAssignments() -> 7 -> 4
-//            else sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>());
+            sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments()));
         }
-//        System.out.println();
-        return notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
+        //RMI to the scheduler, it will process these requests and elevator information
+        return notified = sharedState.ecsUpdate(stateUpdate);
     }
 
     /**
@@ -92,9 +108,9 @@ public class ElevatorControlSystem {
             if (notified) {
                 AssignRequest();
             }
-            // if unchanged, it'll keep notifying with same inf
+            // Waits 100 ms before it tries to update the scheduler
             Thread.sleep(100);
-            notified = updateScheduler(); // at some point you have 5 done and 5 undone -> "update" with this info -> 100ms later:
+            notified = updateScheduler();
         }
     }
 
@@ -106,9 +122,13 @@ public class ElevatorControlSystem {
     public synchronized void emergencyState(int elevatorId, ArrayList<WorkAssignment> requests) throws RemoteException {
         emergency = true;
         notified = false;
+        //Remove unserviced requests from the stopped elevator
         elevators.removeIf((elevatorSubsystem -> elevatorSubsystem.getElevatorId() == elevatorId));
+        //Remove the stopped elevator from the scheduler
         sharedState.removeWorkElevator(elevatorId);
+        //Remove the requests
         elevatorRequests.removeAll(requests);
+        //Reallocates the requests that got removed
         emergency = sharedState.ecsEmergency(requests);
         AssignRequest();
     }
@@ -116,6 +136,7 @@ public class ElevatorControlSystem {
 
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException {
         ElevatorControlSystem elevatorController = new ElevatorControlSystem();
+        //The 100 ms wait causes this method to execute repeated with a small delay
         while (true) {
             elevatorController.runSystem();
         }

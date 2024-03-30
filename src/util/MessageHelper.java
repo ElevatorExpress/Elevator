@@ -8,6 +8,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
 
+/**
+ * Class for working with messages
+ * @author Connor Beleznay
+ */
 public class MessageHelper {
 
     /**

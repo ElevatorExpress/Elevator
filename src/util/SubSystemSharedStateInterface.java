@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+/**
+ * Interface that supplies methods to communicate between subsystems
+ */
 public interface SubSystemSharedStateInterface extends Remote {
 
 

@@ -57,8 +57,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 /**
  * The scheduler.Scheduler class is responsible for managing elevator and floor requests,
  * assigning idle elevators to floor requests, and handling elevator status updates.
- * It implements the Runnable interface to allow it to be executed in a separate thread.
- * At hte moment it is at risk of circular wait, and needs to be refactored to use semaphores.
  */
 public class Scheduler {
     private DatagramSocket inSocket;
@@ -66,8 +64,7 @@ public class Scheduler {
     private SchedulerState currentState;
     private SubSystemSharedState sharedState;
 
-    private
-    Registry registry;
+    private Registry registry;
 
     // Key is Message ID, Value is the message
     //Requests are taken from the shared buffer and parsed into the appropriate buffer, these are requests that have yet
@@ -88,15 +85,17 @@ public class Scheduler {
 
 
     /**
-     *  Creates a Scheduler
+     * Creates a Scheduler
      * @param schedulerAddr The Internet address of the scheduler
      * @param schedulerPort The port that the scheduler listens to
      * @param floorSubSystemPort The port that the floor system listens to
+     * @param allocationStrategy the object that will do the allocation
+     * @param sharedState object that holds the states of the elevators
      */
     public Scheduler(InetAddress schedulerAddr, int schedulerPort, int floorSubSystemPort, AllocationStrategy allocationStrategy, SubSystemSharedState sharedState) {
         try {
+            //Set up port to receive and send
             this.floorSubSystemPort = floorSubSystemPort;
-//            this.elevatorSubSystemPort = elevatorSubSystemPort;
             inSocket = new DatagramSocket(schedulerPort, schedulerAddr);
             InetSocketAddress inetSocketAddress = new InetSocketAddress(schedulerAddr, schedulerPort);
             outSocket = new DatagramSocket();
@@ -108,6 +107,7 @@ public class Scheduler {
             assignedWork = new HashMap<>();
             requestSet = new HashSet<>();
             this.allocationStrategy = allocationStrategy;
+            //Sets this object as the scheduler of the sharedState
             this.sharedState.setScheduler(this);
 //            floorMessageBuffer.listenAndFillBuffer();
         } catch (Exception e) {
@@ -118,19 +118,17 @@ public class Scheduler {
 
     /**
      * Handles Elevator Control System Updates
-     * @return True if updated false if not
+     * @return true if updated, false if not
      */
-    //ToDo: Does the FCS expect something in the data payload? currently it is null on response.
     public boolean handleECSUpdate() throws InterruptedException, IOException {
         boolean updated = false;
-        //Check the message buffer for updates. if theres none return false
+        //Check the message buffer for updates. if there's none return false
         if (currentState instanceof SchedulerScheduling) {
             if (!floorMessageBuffer.isBufferEmpty()) {
                 updated = true;
-                //If there is a message in the buffer construct an array of work assignemnts and submit them to allocate, then to the shared state
+                //If there is a message in the buffer construct an array of work assignments and submit them to allocate, then to the shared state
                 SerializableMessage[] floorReqs = floorMessageBuffer.get();
                 doneReading();
-//        ArrayList<WorkAssignment> newWorkAssignments = new ArrayList<>();
                 for (SerializableMessage floorReq : floorReqs) {
                     String reqId = floorReq.reqID();
                     int serviceFloor = floorReq.senderID();
@@ -144,18 +142,16 @@ public class Scheduler {
 
                     WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal, errorBit);
 
-    //            newWorkAssignments.add(wa);
                     //Update the shared object with new work assignments
                     logger.info("New Floor Request: " + wa);
                     allocationStrategy.allocate(wa);
                     sharedState.addNewWorkAssignment(wa);
                 }
+                //Signal that the Scheduler is done reading
                 doneServing();
             }
 
-            //iterate through update, check for completed assignments, remove them from the assigned work buffer and respond
-            //to the floor system
-            //
+            //Check for completed assignments, remove them from the assigned work buffer and respond to the floor system
             if (sharedState.getWorkAssignments() == null) {
                 doneServing();
                 return updated;
@@ -168,11 +164,14 @@ public class Scheduler {
                 ConcurrentLinkedDeque<WorkAssignment> wa = sharedState.getWorkAssignments().get(assignmentKey);
                 for (WorkAssignment workAssignment : wa) {
                     assert wa != null;
+                    //If the current request is done
                     if (workAssignment.isPickupComplete() && workAssignment.isDropoffComplete() && requestSet.add(workAssignment.getFloorRequestId())) {
+                        //Remove the assignment
                         sharedState.getWorkAssignments().get(assignmentKey).remove();
                         String floorAddr = workAssignment.getSenderAddr();
                         int floorPort = workAssignment.getSenderPort();
                         logger.info(wa + " drop off: " + workAssignment.dropoffComplete);
+                        //Constructs and sends a DONE message
                         SerializableMessage message = new SerializableMessage(
                                 floorAddr,
                                 floorPort,
@@ -225,7 +224,6 @@ public class Scheduler {
      */
     public void startSystem() {
         //TODO: Graceful shutdown
-        //ToDo: complete SchedulerV2, port changes over to scheduler class so this method can be called.
         currentState = SchedulerState.start(this);
         floorMessageBuffer.listenAndFillBuffer();
     }
@@ -238,7 +236,6 @@ public class Scheduler {
 
         s.startSystem();
     }
-
 
 }
 

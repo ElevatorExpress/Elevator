@@ -32,7 +32,7 @@ public class FloorSystem {
         this.commBuffer = commBuffer;
         requestsBuffer = new HashMap<>();
         senderThread = new Thread(this::prepareAndSendMessage);
-        //If there is input for the file throw an exception and stop
+        //If there is no input for the file throw an exception and stop
         try {
             currentFloorInfoReader = new FloorInfoReader(new File("./FloorData.txt"));
         } catch (FileNotFoundException fileNotFoundException){
@@ -65,6 +65,7 @@ public class FloorSystem {
                     floorData
             );
 
+            //Puts the requests into the buffer as long as they are unique
             requestsBuffer.putIfAbsent(request.reqID(), request);
         }
     }
@@ -73,13 +74,16 @@ public class FloorSystem {
      * Packages messages and sends them to the scheduler
      */
     private void prepareAndSendMessage(){
+        //If the buffer is not empty it will sort the requests based on when they are
         if (!requestsBuffer.isEmpty()){
+            //Sorts from first request to arrive to the last one
             SerializableMessage[] sorted = requestsBuffer.values().stream()
                     .sorted(Comparator.comparingInt((serMessage) -> Integer.parseInt(serMessage.data().time())))
                     .toArray(SerializableMessage[]::new);
 
             int cumulativeDelay = 0;
             for (SerializableMessage message : sorted) {
+                //Delays sending each message to the scheduler based on when they arrive (simulate delay between requests)
                 int delaySec = (Integer.parseInt(message.data().time()) * 1000) - cumulativeDelay; // Delays the correct amount of time
                 cumulativeDelay += delaySec;
                 try {
@@ -95,10 +99,15 @@ public class FloorSystem {
         }
     }
 
+    /**
+     * Reads the message buffer and starts grouping requests
+     */
     public void startFloorInteractions(){
+        //Grabs from MessageBuffer
         commBuffer.listenAndFillBuffer();
         senderThread.start();
         receiveMessage();
+        //If this thread stays alive there is an issue
         try {
             senderThread.join(1000);
         } catch (InterruptedException ignored) {}
@@ -152,6 +161,7 @@ public class FloorSystem {
     }
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
+        //Creates a messageBuffer with the corresponding ports
         MessageBuffer schedulerBuffer = new MessageBuffer(
                 "FloorSystem ->",
                 new DatagramSocket(8082),
