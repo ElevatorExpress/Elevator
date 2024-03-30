@@ -29,7 +29,7 @@ public class ElevatorControlSystem {
         elevatorRequests = new ArrayList<>();
         elevators = new ArrayList<>();
         sharedState = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedSubSystemState");
-        createElevators(2);
+        createElevators(3);
 
     }
     private void createElevators(int numElevators) throws IOException, InterruptedException {
@@ -58,15 +58,14 @@ public class ElevatorControlSystem {
 
     protected void updateScheduler() throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
-        boolean flag = false;
         for (ElevatorSubsystem elevator : elevators) {
             ElevatorStateUpdate elevatorStateUpdate = elevator.getElevatorInfo();
             stateUpdate.put(elevator.getElevatorId(), elevatorStateUpdate);
             sharedState.addElevatorState(elevator.getElevatorId(),elevatorStateUpdate);
-            sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments())); // elevatorStateUpdate.getWorkAssignments() -> 7 -> 4
-            if (stateUpdate.get(elevator.getElevatorId()).getStateSignal() != Signal.IDLE) flag = true;
+            if (stateUpdate.get(elevator.getElevatorId()).getStateSignal() != Signal.IDLE) sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments())); // elevatorStateUpdate.getWorkAssignments() -> 7 -> 4
+            else sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>());
         }
-        if (flag) notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
+        notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
     }
 
     private void runSystem() throws InterruptedException, IOException {

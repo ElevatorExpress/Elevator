@@ -63,14 +63,16 @@ public class ElevatorSubsystem extends Thread {
                     wa.forEach(workAssignment -> {if (ert.getRequest() == workAssignment) {workAssignment.setPickupComplete();}});
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                     logger.info("Arrived at floor " + ert.getSourceFloor() + " to pick up passengers");
+                    logger.info("wa check: " + wa);
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
                 }
                 else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
+                    logger.info("wa check: " + wa);
                     ert.setStatus(RequestStatus.DONE);
                     wa.forEach(workAssignment -> {if (ert.getRequest() == workAssignment) {workAssignment.setDropoffComplete();}});
-                    elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, new ArrayList<>(wa));
+                    elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                     elevatorInfo.setStateSignal(Signal.DONE);
                     trackRequest.remove(ert);
                 }
@@ -129,7 +131,8 @@ public class ElevatorSubsystem extends Thread {
      */
     private void travelDelay() {
         try {
-            Thread.sleep((long) (1000 * ((4L / 2.53))));
+//            Thread.sleep((long) (1000 * ((4L / 2.53))));
+            Thread.sleep(1000);
             if (universalDirection == Direction.UP) {
                     currentFloor++;
                 } else {
@@ -221,14 +224,6 @@ public class ElevatorSubsystem extends Thread {
      */
     public synchronized void sendMessage() throws IOException, InterruptedException {
        ecs.updateScheduler();
-    }
-
-
-    protected void addTrackedRequest(ConcurrentLinkedDeque<WorkAssignment> newRequests) {
-        for (WorkAssignment request : newRequests) {
-            trackRequest.add(new ElevatorRequestTracker(RequestStatus.UNSERVICED, request));
-        }
-        if (universalDirection == Direction.ANY) universalDirection = trackRequest.get(0).getDirection();
     }
 
     protected void addTrackedRequest(WorkAssignment newRequest) {
