@@ -88,7 +88,9 @@ public class ElevatorControlSystem {
 
         elevators.removeIf((elevatorSubsystem -> elevatorSubsystem.getElevatorId() == elevatorId));
         sharedState.removeWorkElevator(elevatorId);
+        elevatorRequests.removeAll(requests);
         emergency = sharedState.ecsEmergency(requests);
+        AssignRequest();
     }
 
 
