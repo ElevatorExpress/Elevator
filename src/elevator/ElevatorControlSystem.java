@@ -6,7 +6,6 @@ import util.SubSystemSharedStateInterface;
 import util.WorkAssignment;
 
 import java.io.IOException;
-import java.net.*;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -24,8 +23,10 @@ public class ElevatorControlSystem {
     private Thread elevator3;
     private SubSystemSharedStateInterface sharedState;
     private boolean notified = false;
+    private boolean emergency;
 
     public ElevatorControlSystem() throws IOException, NotBoundException, InterruptedException {
+        emergency = false;
         elevatorRequests = new ArrayList<>();
         elevators = new ArrayList<>();
         sharedState = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedSubSystemState");
@@ -56,7 +57,7 @@ public class ElevatorControlSystem {
         }
     }
 
-    protected void updateScheduler() throws IOException, InterruptedException {
+    protected synchronized void updateScheduler() throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
         for (ElevatorSubsystem elevator : elevators) {
             ElevatorStateUpdate elevatorStateUpdate = elevator.getElevatorInfo();
@@ -69,13 +70,24 @@ public class ElevatorControlSystem {
     }
 
     private void runSystem() throws InterruptedException, IOException {
-        if (notified) {
-            AssignRequest();
-        }
-        // if unchanged, it'll keep notifying with same info
+        if (!emergency){
+            if (notified) {
+                AssignRequest();
+            }
+            // if unchanged, it'll keep notifying with same info
 //        Thread.sleep(100);
 //        notified = updateScheduler(); // at some point you have 5 done and 5 undone -> "update" with this info -> 100ms later:
+        }
     }
+
+    public synchronized void emergencyState(int elevatorId, ArrayList<WorkAssignment> requests) throws RemoteException {
+        emergency = true;
+        notified = false;
+
+        sharedState.removeWorkElevator(elevatorId);
+        emergency = sharedState.ecsEmergency(requests);
+    }
+
 
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException {
         ElevatorControlSystem elevatorController = new ElevatorControlSystem();
@@ -83,4 +95,5 @@ public class ElevatorControlSystem {
             elevatorController.runSystem();
         }
     }
+
 }

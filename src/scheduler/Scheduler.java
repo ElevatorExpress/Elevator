@@ -175,6 +175,13 @@ public class Scheduler {
         return updated;
     }
 
+    public boolean handleECSEmergency(ArrayList<WorkAssignment> workRequests) {
+        for (WorkAssignment workRequest : workRequests) {
+            allocationStrategy.allocate(workRequest);
+        }
+        return true;
+    }
+
 
 
     /**
@@ -206,5 +213,7 @@ public class Scheduler {
 
         s.startSystem();
     }
+
+
 }
 

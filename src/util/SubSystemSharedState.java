@@ -1,9 +1,6 @@
 package util;
 
-import elevator.ElevatorSubsystem;
 import scheduler.Scheduler;
-import elevator.ElevatorControlSystem;
-//import scheduler.SchedulerV2;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -28,6 +25,10 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     public boolean ecsUpdate(HashMap<Integer, ElevatorStateUpdate> stateUpdate) throws InterruptedException, IOException {
         elevatorStates = stateUpdate;
         return scheduler.handleECSUpdate();
+    }
+
+    public boolean ecsEmergency(ArrayList<WorkAssignment> workRequests){
+        return scheduler.handleECSEmergency(workRequests);
     }
 
 
@@ -85,6 +86,11 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
 
     public void removeElevatorState(int elevatorId) {
         elevatorStates.remove(elevatorId);
+    }
+
+    public void removeWorkElevator(int elevatorId) {
+        workAssignments.remove(elevatorId);
+        removeElevatorState(elevatorId);
     }
 
     public void addNewWorkAssignment(WorkAssignment workAssignment) {

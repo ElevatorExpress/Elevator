@@ -1,21 +1,18 @@
 package elevator;
 
-import util.*;
-import util.Messages.MessageTypes;
-import util.Messages.SerializableMessage;
+import elevator.ElevatorRequestTracker.RequestStatus;
+import util.Direction;
+import util.ElevatorLogger;
+import util.ElevatorStateUpdate;
 import util.Messages.Signal;
+import util.WorkAssignment;
 import util.states.ElevatorIdle;
 import util.states.ElevatorState;
 import util.states.ElevatorWorking;
-import elevator.ElevatorRequestTracker.*;
 
 import java.io.IOException;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
-
-import static java.lang.Math.abs;
-import static java.lang.Math.log;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 /**
  * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
@@ -56,17 +53,18 @@ public class ElevatorSubsystem extends Thread {
 
     private void incrementFloor() {
         //find if current floor and direction matches a request
-        int[] errorBit = {0};
+        int errorBit = 0;
+        boolean majorDelay = false;
+        boolean minorDelay = false;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
+            errorBit = ert.getRequest().getErrorBit();
             if (ert.getDirection() == universalDirection) {
                 if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
                     wa.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
                             workAssignment.setPickupComplete();
-                        }
-                        if (workAssignment.getErrorBit() != 0 && errorBit[0] != 0){
-                            errorBit[0] = workAssignment.getErrorBit();
+                            workAssignment.setSignal(Signal.WORKING);
                         }
                     });
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
@@ -74,12 +72,20 @@ public class ElevatorSubsystem extends Thread {
                     logger.info("wa check: " + wa);
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
+
+
+
                 }
                 else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
                     logger.info("wa check: " + wa);
                     ert.setStatus(RequestStatus.DONE);
-                    wa.forEach(workAssignment -> {if (ert.getRequest() == workAssignment) {workAssignment.setDropoffComplete();}});
+                    wa.forEach(workAssignment -> {
+                        if (ert.getRequest() == workAssignment) {
+                            workAssignment.setDropoffComplete();
+                            workAssignment.setSignal(Signal.DONE);
+                        }
+                    });
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                     elevatorInfo.setStateSignal(Signal.DONE);
                     trackRequest.remove(ert);
@@ -90,16 +96,23 @@ public class ElevatorSubsystem extends Thread {
         if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP) universalDirection = Direction.DOWN;
         else if (currentFloor == 0 && universalDirection == Direction.DOWN) universalDirection = Direction.UP;
 
+
+
+
         // Delay for a floor. Catches hard faults
         try {
-            Thread travelDelayThread = new Thread(() -> { this.travelDelay(); });
+            int finalErrorBit = errorBit;
+            Thread travelDelayThread = new Thread(() -> this.travelDelay(finalErrorBit == 2));
             travelDelayThread.start();
             travelDelayThread.join(5000);
             if (travelDelayThread.isAlive()){
                 System.out.println("HARD FAULT has occurred, elevator took too long to reach destination");
-                // Make this elevator Idle
+                elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
+                elevatorInfo.setStateSignal(Signal.EMERG);
+                ecs.emergencyState(elevatorId, wa.stream().filter((workAssignment -> workAssignment.getSignal() == Signal.WORK_REQ)).collect(Collectors.toCollection(ArrayList::new)));
             }
-        } catch (InterruptedException e) {
+            sendMessage();
+        } catch (InterruptedException | IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -148,23 +161,21 @@ public class ElevatorSubsystem extends Thread {
      * Simulates the delay an elevator would need to reach a specific floor
      *
      */
-    private void travelDelay(int error) {
+    private void travelDelay(boolean hasError) {
         try {
-            Thread.sleep((long) (1000 * ((4L / 2.53))));
+            logger.info("going to hard fault: " + hasError);
+            if (!hasError) Thread.sleep((long) (1000 * ((4L / 2.53))));
+            else Thread.sleep(6000);
             //Thread.sleep(1000);
 
             if (universalDirection == Direction.UP) {
-                    currentFloor++;
-                } else {
-                    currentFloor--;
-                }
-                sendMessage();
+                currentFloor++;
+            } else {
+                currentFloor--;
+            }
 
-        } catch (InterruptedException ie) {
-            System.exit(1);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
+        catch (InterruptedException ignored) {}
     }
 
     /**
