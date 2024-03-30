@@ -10,13 +10,8 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class SubSystemSharedState extends UnicastRemoteObject implements SubSystemSharedStateInterface {
-
     private HashMap <Integer, ElevatorStateUpdate> elevatorStates;
-
-
-    // Placeholder this needsd to change
     private HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments = new HashMap<>();
-
     private ArrayList<WorkAssignment> newWorkAssignmentBuffer = new ArrayList<>();
     Scheduler scheduler;
 
@@ -33,13 +28,12 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
 
     /**
      * Notifies shared object. ECS had an emergency
-     * @param workRequests To be re allocated
+     * @param workRequests To be re-allocated
      * @return false if succeeded
      */
     public boolean ecsEmergency(ArrayList<WorkAssignment> workRequests){
         return scheduler.handleECSEmergency(workRequests);
     }
-
 
     /**
      * Sets the scheduler
@@ -73,13 +67,20 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     }
 
     /**
+     * Adds a new work assignment
+     * @param workAssignment The new work assignment
+     */
+    public void addNewWorkAssignment(WorkAssignment workAssignment) {
+        newWorkAssignmentBuffer.add(workAssignment);
+    }
+
+    /**
      * Gets new work assignment
      * @return The new work assignments
      */
     public ArrayList<WorkAssignment> getNewWorkAssignmentsBuffer() {
         return newWorkAssignmentBuffer;
     }
-
 
     /**
      * Gets the elevator states
@@ -90,11 +91,28 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     }
 
     /**
+     * Adds an elevator state
+     * @param elevatorId The elevator
+     * @param elevatorState The elevator state
+     */
+    public void addElevatorState(int elevatorId, ElevatorStateUpdate elevatorState) {
+        elevatorStates.put(elevatorId, elevatorState);
+    }
+
+    /**
      * Sets the elevators states map
      * @param elevatorStates The state map
      */
     public void setElevatorStates(HashMap<Integer, ElevatorStateUpdate> elevatorStates) {
         this.elevatorStates = elevatorStates;
+    }
+
+    /**
+     * Remove an elevator state
+     * @param elevatorId The elevator
+     */
+    public void removeElevatorState(int elevatorId) {
+        elevatorStates.remove(elevatorId);
     }
 
     /**
@@ -113,24 +131,6 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
         return workAssignments;
     }
 
-
-    /**
-     * Adds an elevator state
-     * @param elevatorId The elevator
-     * @param elevatorState The elevator state
-     */
-    public void addElevatorState(int elevatorId, ElevatorStateUpdate elevatorState) {
-        elevatorStates.put(elevatorId, elevatorState);
-    }
-
-    /**
-     * Remove an elevator state
-     * @param elevatorId The elevator
-     */
-    public void removeElevatorState(int elevatorId) {
-        elevatorStates.remove(elevatorId);
-    }
-
     /**
      * Remove a work elevator
      * @param elevatorId the elevator
@@ -138,14 +138,6 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     public void removeWorkElevator(int elevatorId) {
         workAssignments.remove(elevatorId);
         removeElevatorState(elevatorId);
-    }
-
-    /**
-     * Adds a new work assignment
-     * @param workAssignment The new work assignment
-     */
-    public void addNewWorkAssignment(WorkAssignment workAssignment) {
-        newWorkAssignmentBuffer.add(workAssignment);
     }
 
     /**
@@ -224,6 +216,10 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
         clearAllElevatorStates();
     }
 
+    /**
+     * Gets all the work assignments
+     * @return
+     */
     public HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> getAllWorkAssignments() {
         return workAssignments;
     }

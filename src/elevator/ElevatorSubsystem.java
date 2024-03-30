@@ -37,6 +37,7 @@ public class ElevatorSubsystem extends Thread {
     //Our simulated building has 22 floors
     private final int MAX_LEVEL = 22;
     private final ElevatorControlSystem ecs;
+    private boolean stopBit = false;
 
 
     /**
@@ -46,7 +47,7 @@ public class ElevatorSubsystem extends Thread {
      */
     public ElevatorSubsystem(int elevatorId, ElevatorControlSystem ecs) {
         this.elevatorId = elevatorId;
-        logger = new ElevatorLogger("Elevator-" + elevatorId, "\u001B[3"+ elevatorId +"m");
+        logger = new ElevatorLogger("Elevator-" + elevatorId, "\u001B[3"+ ( 3 + elevatorId) +"m");
         currentState = null;
         buttons = new ElevatorButtonPanel(MAX_LEVEL);
         //Direction is not picked yet
@@ -69,7 +70,7 @@ public class ElevatorSubsystem extends Thread {
                 if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
                     int errorBit = ert.getRequest().getErrorBit();
                     //If an error was injected
-                    if (errorBit == 2){
+                    if (errorBit == 2) {
                         majorDelay = true;
                         //Remove the flagged request from the list
                         wa.remove(ert.getRequest());
@@ -88,8 +89,9 @@ public class ElevatorSubsystem extends Thread {
 
                     //Send state update
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
+                    elevatorInfo.setStateSignal(Signal.WORKING);
                     //Output what happened
-                    logger.info("Arrived at floor " + ert.getSourceFloor() + " to pick up passengers");
+                    logger.info("Picking up passengers from: " + ert.getSourceFloor() + ". Destination: " + ert.getDestFloor());
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
                 }
@@ -173,9 +175,7 @@ public class ElevatorSubsystem extends Thread {
                     completed = true;
                 }
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        } catch (InterruptedException ignored) {}
     }
 
     /**
@@ -215,70 +215,6 @@ public class ElevatorSubsystem extends Thread {
     }
 
     /**
-     * Gets the direction of elevator movement based on arrivalFloor and currentFloor
-     *
-     * @param arrivalFloor The floor the elevator is moving to
-     * @return A String for the determined direction
-     */
-    private Direction getDirection(int arrivalFloor) {
-        if (arrivalFloor - currentFloor > 0) {return Direction.UP;}
-        return Direction.DOWN;
-    }
-
-    /**
-     * Determines if the lowest or highest floor is desired based on direction.
-     *
-     * @param minMax The current min or max value representing the lowest or highest floor
-     * @param floor The floor used for comparison
-     * @return A boolean representing if the floor is lower or higher than the current min or max
-     */
-    public boolean handleRequestDirection(int minMax, int floor) {
-        if (universalDirection == Direction.UP) {
-            if (floor > currentFloor){
-                return (minMax == 0 || minMax > floor);
-            }
-        }
-        if (floor < currentFloor) {
-            return (minMax == 0 ||  floor > minMax);
-        }
-        return false;
-    }
-
-    /**
-     * Gets the next request to service
-     * @return The next request
-     */
-    public ElevatorRequestTracker serviceNextRequest() {
-        //This is the next floor that the elevator will stop at
-        int minMax = 0;
-        ElevatorRequestTracker nextRequest = null;
-        ArrayList<ElevatorRequestTracker> dummyRequestList = new ArrayList<>(trackRequest);
-        for (ElevatorRequestTracker ert : dummyRequestList) {
-            switch (ert.getStatus()) {
-                case UNSERVICED, PICKING -> {
-                    //Figure out which way the elevator is moving and set the next stop
-                    if (handleRequestDirection(minMax, ert.getSourceFloor())) {
-                        minMax = ert.getSourceFloor();
-                        nextRequest = ert;
-                    }
-                }
-                case DROPPING-> {
-                    //Figure out which way the elevator is moving and set the next stop
-                    if (handleRequestDirection(minMax, ert.getDestFloor())){
-                        minMax = ert.getDestFloor();
-                        nextRequest = ert;
-                    }
-                }
-            }
-        }
-
-        //Grab the next request
-        assert nextRequest != null;
-        nextRequest.setStatus();
-        return nextRequest;
-    }
-
-    /**
      * Gets requests from the Scheduler and tracks them
      * @param newRequest the request that is going to be tracked
      */
@@ -287,22 +223,19 @@ public class ElevatorSubsystem extends Thread {
         //Sets the direction of the elevator if it does not have one
         if (universalDirection == Direction.ANY) universalDirection = newRequest.getDirection();
         //Grabs the lock for the trackRequest and add the request to it
-        synchronized (trackRequest) {
-            if (newRequest.getSignal() == Signal.WORK_REQ) {
-                trackRequest.add(new ElevatorRequestTracker(RequestStatus.PICKING, newRequest));
-            }
+        if (newRequest.getSignal() == Signal.WORK_REQ) {
+            trackRequest.add(new ElevatorRequestTracker(RequestStatus.PICKING, newRequest));
         }
         //Output what happened
-        logger.info("Elevator received request from scheduler. Signal: " + newRequest.getSignal() + ", Request: " + newRequest + " requests size:" + trackRequest.size());
+        logger.info("Elevator received request from scheduler. Signal: " + newRequest.getSignal() + ", Request: " + newRequest + ", Now Servicing " + trackRequest.size() + " request(s)");
     }
 
     /**
      * Attempts to get a request
      */
     public void receiveMessage() {
-        while (trackRequest.isEmpty()) {}
+        while (trackRequest.isEmpty() && !stopBit) {}
     }
-
 
     /**
      * Triggers a complete request event
@@ -329,6 +262,12 @@ public class ElevatorSubsystem extends Thread {
         return elevatorId;
     }
 
+    /**
+     * Stop bit to force stop elevator system
+     */
+    public void setStopBit(boolean stopBit) {
+        this.stopBit = stopBit;
+    }
 
     /**
      * Run
@@ -339,7 +278,7 @@ public class ElevatorSubsystem extends Thread {
         currentState = ElevatorState.start(this);
 
         //Run forever
-        while (true) {
+        while (!stopBit) {
             //If the elevator is idle
             if (currentState instanceof ElevatorIdle) {
                 //Make new update event with corresponding values

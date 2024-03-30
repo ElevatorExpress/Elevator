@@ -1,88 +1,79 @@
 package elevator;
 
-import floor.FloorInfoReader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import util.MessageBuffer;
-import util.Messages.MessageTypes;
-import util.Messages.SerializableMessage;
+import util.*;
 import util.Messages.Signal;
 
-import java.io.IOException;
 import java.net.*;
+import java.rmi.AlreadyBoundException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.UUID;
-
-import static util.MessageHelper.ReceiveMessage;
-import static util.MessageHelper.SendMessage;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 class ElevatorSubsystemTest {
-
-    static ElevatorSubsystem elevator;
+    static SubSystemSharedState schedulerSharedObject;
+    static SubSystemSharedStateInterface elevatorSharedObject;
 
     @BeforeAll
-    static void createElevatorSystem() {
-        MessageBuffer queue;
-        try {
-            queue = new MessageBuffer(
-                    "ElevatorTest",
-                    new DatagramSocket(8081),
-                    new InetSocketAddress(InetAddress.getLocalHost(), 8080),
-                    8080
-            );
-            queue.listenAndFillBuffer();
-            elevator = new ElevatorSubsystem( 1);
-        } catch (SocketException | UnknownHostException  ignored) {}
+    static void createElevatorSystem() throws RemoteException, MalformedURLException, AlreadyBoundException, UnknownHostException, NotBoundException {
 
+        schedulerSharedObject = new SubSystemSharedState();
+        LocateRegistry.createRegistry(1099);
+        Naming.bind("SharedObjectTest", schedulerSharedObject);
+        elevatorSharedObject = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedObjectTest");
+
+        HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> testWorkAssignments = new HashMap<>();
+        ConcurrentLinkedDeque<WorkAssignment> testWorkAssignmentsQueue = new ConcurrentLinkedDeque<>();
+        testWorkAssignmentsQueue.add(new WorkAssignment(
+                        1,
+                        2,
+                        "6",
+                        Direction.UP,
+                        UUID.randomUUID().toString(),
+                        InetAddress.getLocalHost().toString(),
+                        8082,
+                        Signal.WORK_REQ,
+                        0
+                )
+        );
+
+        testWorkAssignments.put(1, testWorkAssignmentsQueue);
+        schedulerSharedObject.setWorkAssignments(testWorkAssignments);
+    }
+    @Test
+    void receiveMessage() throws RemoteException, InterruptedException {
+        ElevatorSubsystem  testElevator = new ElevatorSubsystem(1, null);
+        testElevator.start();
+
+        for (WorkAssignment workAssignment : elevatorSharedObject.getWorkAssignments().get(1)) {
+            testElevator.addTrackedRequest(workAssignment);
+        }
+        Assertions.assertNotEquals(testElevator.getElevatorInfo().getStateSignal(), Signal.IDLE);
+        while (true) {
+            if (testElevator.getElevatorInfo().getStateSignal() != Signal.IDLE) break;
+        }
+        testElevator.setStopBit(true);
+        testElevator.join();
     }
 
     @Test
-    void sendMessage(){
-        InetAddress addr = null;
-        try {
-            addr = InetAddress.getLocalHost();
-        }catch (UnknownHostException ignored){}
-        FloorInfoReader.Data data = new FloorInfoReader.Data("4:12", "2", "up", "9", "0");
+    void sendMessage() throws RemoteException {
+        WorkAssignment workAssignment = elevatorSharedObject.getWorkAssignments().get(1).peek();
+        assert workAssignment != null;
+        workAssignment.setSignal(Signal.DONE);
+        ConcurrentLinkedDeque<WorkAssignment> workAssignmentQueueUpdated = new ConcurrentLinkedDeque<>();
+        workAssignmentQueueUpdated.add(workAssignment);
+        elevatorSharedObject.setWorkAssignmentQueue(1, workAssignmentQueueUpdated);
 
-        assert addr != null;
-        SerializableMessage sm =  new SerializableMessage(addr.getHostAddress(), 8081, Signal.DONE, MessageTypes.ELEVATOR, 1, null, UUID.randomUUID().toString(), data);
-
-        Thread t = new Thread(() -> {
-            try {
-                byte[] messageArray = new byte[1024];
-                DatagramSocket receiveSocket = new DatagramSocket(8080);
-                DatagramPacket receivePacket = new DatagramPacket(messageArray, messageArray.length);
-                SerializableMessage msg = ReceiveMessage(receiveSocket, messageArray, receivePacket);
-                Assertions.assertEquals(sm, msg);
-                receiveSocket.close();
-            } catch (Exception ignored){}
-        });
-
-        t.start();
-        elevator.sendMessage(Signal.DONE, sm);
-        try {
-            t.join();
-        } catch (InterruptedException ignore){}
+        Assertions.assertEquals(Objects.requireNonNull(schedulerSharedObject.getWorkAssignments().get(1).peek()).getSignal(), Signal.DONE);
     }
 
-    @Test
-    void receiveMessage() {
-        InetAddress addr = null;
-        try {
-            addr = InetAddress.getLocalHost();
-        }catch (UnknownHostException ignored){}
 
-        assert addr != null;
-        FloorInfoReader.Data data = new FloorInfoReader.Data("4:12", "2", "up", "9", "0");
-        SerializableMessage sm =  new SerializableMessage(addr.getHostAddress(), 8082, Signal.WORK_REQ, MessageTypes.FLOOR, 1, UUID.randomUUID().toString(), UUID.randomUUID().toString(), data);
-
-        Thread t = new Thread(() -> elevator.receiveMessage());
-
-        t.start();
-        try {
-            DatagramSocket sendSocket = new DatagramSocket();
-            SendMessage(sendSocket, sm, InetAddress.getLocalHost(), 8081);
-            t.join();
-        } catch (InterruptedException | IOException ignored){}
-    }
 }

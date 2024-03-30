@@ -10,27 +10,22 @@ import java.io.Serializable;
  */
 public class WorkAssignment implements Serializable {
     //Pick up floor
-    private int serviceFloor;
+    private final int serviceFloor;
     //Drop off floor
-    private int destinationFloor;
-
-    private String assignmentTimeStamp;
-
-    private String assignmentId;
-
-    private String floorRequestId;
+    private final int destinationFloor;
+    private final String assignmentTimeStamp;
+    private final String floorRequestId;
     private Signal signal;
     //Have passengers been picked up
     public boolean pickupComplete = false;
     //Have passengers been dropped off
     public boolean dropoffComplete = false;
     //Request direction
-    private Direction direction;
-    private String senderAddr;
-    private int senderPort;
+    private final Direction direction;
+    private final String senderAddr;
+    private final int senderPort;
     //Is there an error in the work order
-    private int errorBit;
-
+    private final int errorBit;
 
     /**
      * Creates a work assignment
@@ -49,7 +44,6 @@ public class WorkAssignment implements Serializable {
         this.destinationFloor = destinationFloor;
         this.assignmentTimeStamp = assignmentTimeStamp;
         this.direction = direction;
-        this.assignmentId = assignmentTimeStamp + serviceFloor + destinationFloor;
         this.floorRequestId = floorRequestId;
         this.senderAddr = senderAddr;
         this.senderPort = senderPort;
@@ -57,39 +51,80 @@ public class WorkAssignment implements Serializable {
         this.errorBit = errorBit;
     }
 
+    /**
+     * Gets the time of the request
+     * @return The string representing the time of the request
+     */
+    public String getAssignmentTimeStamp() {
+        return assignmentTimeStamp;
+    }
+    /**
+     * Get the floor where the request is made
+     * @return The number representing the floor
+     */
     public int getServiceFloor() {
         return serviceFloor;
     }
+
+    /**
+     * Get the address for the sender of the request
+     * @return The name of the host that sent the request
+     */
     public String getSenderAddr() {
         return senderAddr;
     }
+
+
+    /**
+     * Get the port for sender of the request
+     * @return The port used for communicating the request
+     */
     public int getSenderPort() {
         return senderPort;
     }
+
+    /**
+     * Get the request id of the sender
+     * @return The id of the request
+     */
     public String getFloorRequestId() {
         return floorRequestId;
     }
 
+    /**
+     * Get the destination floor of the request
+     * @return The number representing the destination floor
+     */
     public int getDestinationFloor() {
         return destinationFloor;
     }
 
-    public String getAssignmentTimeStamp() {
-        return assignmentTimeStamp;
-    }
-
+    /**
+     * Get the direction of the request
+     * @return The direction
+     */
     public Direction getDirection() {
         return direction;
     }
 
+    /**
+     * Get the error bit used for injecting faults
+     * @return The bit representing hard or soft faults
+     */
     public int getErrorBit() {
         return errorBit;
     }
 
+    /**
+     * Set the completion of picking up passengers
+     */
     public void setPickupComplete() {
         pickupComplete = true;
     }
 
+    /**
+     * Set the completion of the dropping of passengers
+     */
     public void setDropoffComplete() {
         dropoffComplete = true;
     }
@@ -98,6 +133,10 @@ public class WorkAssignment implements Serializable {
         return pickupComplete;
     }
 
+    /**
+     * Checks if a request drop off is completed
+     * @return boolean showing the completion of drop off
+     */
     public boolean isDropoffComplete() {
         return dropoffComplete;
     }
@@ -107,7 +146,7 @@ public class WorkAssignment implements Serializable {
      * @return the string representation
      */
     public String toString() {
-        return assignmentTimeStamp + "ms: Service Floor: " + serviceFloor + " Destination Floor: " + destinationFloor + " Direction: " + direction;
+        return "[" + assignmentTimeStamp + "ms, Service Floor: " + serviceFloor + ", Destination Floor: " + destinationFloor + ", Direction: " + direction + "]";
     }
 
     /**
@@ -135,6 +174,9 @@ public class WorkAssignment implements Serializable {
     public boolean equals(Object o) {
         WorkAssignment that = (WorkAssignment) o;
         //2 Work Assignments are equal when their service floor, destination floor, timestamp and direction are the same
-        return serviceFloor == that.serviceFloor && destinationFloor == that.destinationFloor && assignmentTimeStamp.equals(that.assignmentTimeStamp) && direction == that.direction;
+        return serviceFloor == that.serviceFloor &&
+                destinationFloor == that.destinationFloor &&
+                assignmentTimeStamp.equals(that.assignmentTimeStamp) &&
+                direction == that.direction;
     }
 }
