@@ -103,13 +103,15 @@ public class Scheduler {
 
             //Check for completed assignments, remove them from the assigned work buffer and respond to the floor system
             if (sharedState.getWorkAssignments() == null) {
+
                 doneServing();
                 return updated;
             }
             for (int assignmentKey : sharedState.getWorkAssignments().keySet()) {
                 if (sharedState.getWorkAssignments().get(assignmentKey).isEmpty()) {
                     doneServing();
-                    return updated;
+
+                    continue;
                 }
                 ConcurrentLinkedDeque<WorkAssignment> workAssignments = sharedState.getWorkAssignments().get(assignmentKey);
                 for (WorkAssignment workAssignment : workAssignments) {

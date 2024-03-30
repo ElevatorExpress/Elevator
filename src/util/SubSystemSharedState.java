@@ -127,6 +127,7 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
      * Get the work assignment
      * @return The work assignment
      */
+    //Elevator id to work queue
     public HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> getWorkAssignments() {
         return workAssignments;
     }
