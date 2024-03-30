@@ -83,9 +83,6 @@ public class ElevatorControlSystem {
     public synchronized void emergencyState(int elevatorId, ArrayList<WorkAssignment> requests) throws RemoteException {
         emergency = true;
         notified = false;
-
-        requests.forEach(workAssignment -> System.out.println(workAssignment + " " + workAssignment.getSignal()));
-
         elevators.removeIf((elevatorSubsystem -> elevatorSubsystem.getElevatorId() == elevatorId));
         sharedState.removeWorkElevator(elevatorId);
         elevatorRequests.removeAll(requests);
