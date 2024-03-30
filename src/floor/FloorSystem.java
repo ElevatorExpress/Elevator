@@ -119,13 +119,14 @@ public class FloorSystem {
                 receivedMessages = commBuffer.get();
             } catch (InterruptedException ignored) {}
             //Look through each message
-            for (SerializableMessage elevatorMessages : receivedMessages) {
-                String originalRequestID = elevatorMessages.reqID();
-                Signal signal = elevatorMessages.signal();
+            for (SerializableMessage elevatorMessage : receivedMessages) {
+                String originalRequestID = elevatorMessage.reqID();
+                Signal signal = elevatorMessage.signal();
                 //If the response is a DONE type
                 if (signal == Signal.DONE){
                     //Removes the request via its id
-                    logger.info("Checking if completed by Elevator: " + elevatorMessages.senderID() + " On reqID: " + elevatorMessages.reqID());
+                    logger.info("Checking if completed by Elevator: " + elevatorMessage.senderID() + " On reqID: " + elevatorMessage.reqID());
+                    logger.info("REQUESTS: " + requestsBuffer);
                     if (requestsBuffer.remove(originalRequestID) == null) {
                         throw new IllegalArgumentException("ID not found in internal request buffer was found in a DONE message. ID: " + originalRequestID);
                     } else {

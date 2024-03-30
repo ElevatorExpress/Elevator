@@ -12,6 +12,7 @@ import util.states.ElevatorWorking;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 /**
  * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
@@ -54,27 +55,30 @@ public class ElevatorSubsystem extends Thread {
 
     private void incrementFloor() {
         //find if current floor and direction matches a request
-        int errorBit = 0;
         boolean majorDelay = false;
-        boolean minorDelay = false;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
-            errorBit = ert.getRequest().getErrorBit();
             if (ert.getDirection() == universalDirection) {
                 if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
+                    int errorBit = ert.getRequest().getErrorBit();
+                    if (errorBit == 1){
+                        // door Check Error
+                    } else if (errorBit == 2){
+                        majorDelay = true;
+                        wa.remove(ert.getRequest());
+                    }
+
                     wa.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
                             workAssignment.setPickupComplete();
                             workAssignment.setSignal(Signal.WORKING);
                         }
                     });
+
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                     logger.info("Arrived at floor " + ert.getSourceFloor() + " to pick up passengers");
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
-
-
-
                 }
                 else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
@@ -95,22 +99,20 @@ public class ElevatorSubsystem extends Thread {
         if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP) universalDirection = Direction.DOWN;
         else if (currentFloor == 0 && universalDirection == Direction.DOWN) universalDirection = Direction.UP;
 
-
-
-
         // Delay for a floor. Catches hard faults
         try {
-            int finalErrorBit = errorBit;
-            Thread travelDelayThread = new Thread(() -> this.travelDelay(finalErrorBit == 2));
+            boolean finalMajorDelay = majorDelay;
+            Thread travelDelayThread = new Thread(() -> this.travelDelay(finalMajorDelay));
             travelDelayThread.start();
             travelDelayThread.join(5000);
             if (travelDelayThread.isAlive()){
-                System.out.println("HARD FAULT has occurred, elevator took too long to reach destination");
+                logger.info("HARD FAULT has occurred, elevator took too long to reach destination");
+                wa.forEach(workAssignment -> logger.info("Work: " + workAssignment + " " + workAssignment.getSignal()));
                 elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                 elevatorInfo.setStateSignal(Signal.EMERG);
                 ecs.emergencyState(elevatorId, wa.stream().filter((workAssignment -> workAssignment.getSignal() == Signal.WORK_REQ)).collect(Collectors.toCollection(ArrayList::new)));
+                trackRequest.clear();
             }
-            sendMessage();
         } catch (InterruptedException | IOException e) {
             throw new RuntimeException(e);
         }
@@ -162,9 +164,11 @@ public class ElevatorSubsystem extends Thread {
      */
     private void travelDelay(boolean hasError) {
         try {
-            logger.info("going to hard fault: " + hasError);
             if (!hasError) Thread.sleep((long) (1000 * ((4L / 2.53))));
-            else Thread.sleep(6000);
+            else {
+                logger.info("EXPECT TO HAVE A HARD FAULT");
+                Thread.sleep(6000);
+            }
 
             if (universalDirection == Direction.UP) {
                 currentFloor++;
@@ -235,14 +239,6 @@ public class ElevatorSubsystem extends Thread {
         assert nextRequest != null;
         nextRequest.setStatus();
         return nextRequest;
-    }
-
-    /**
-     * Sends a message to the scheduler
-     *
-     */
-    public synchronized void sendMessage() throws IOException, InterruptedException {
-       ecs.updateScheduler();
     }
 
     protected void addTrackedRequest(WorkAssignment newRequest) {

@@ -1,12 +1,10 @@
 package elevator;
 
 import util.ElevatorStateUpdate;
-import util.Messages.Signal;
 import util.SubSystemSharedStateInterface;
 import util.WorkAssignment;
 
 import java.io.IOException;
-import java.net.*;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -18,11 +16,9 @@ public class ElevatorControlSystem {
 
     // Some code to handle shared object
 
-    private ArrayList<WorkAssignment> elevatorRequests;
-    private ArrayList<ElevatorSubsystem> elevators;
-    private Thread elevator2;
-    private Thread elevator3;
-    private SubSystemSharedStateInterface sharedState;
+    private final ArrayList<WorkAssignment> elevatorRequests;
+    private final ArrayList<ElevatorSubsystem> elevators;
+    private final SubSystemSharedStateInterface sharedState;
     private boolean notified = false;
     private boolean emergency;
 
@@ -88,6 +84,9 @@ public class ElevatorControlSystem {
         emergency = true;
         notified = false;
 
+        requests.forEach(workAssignment -> System.out.println(workAssignment + " " + workAssignment.getSignal()));
+
+        elevators.removeIf((elevatorSubsystem -> elevatorSubsystem.getElevatorId() == elevatorId));
         sharedState.removeWorkElevator(elevatorId);
         emergency = sharedState.ecsEmergency(requests);
     }

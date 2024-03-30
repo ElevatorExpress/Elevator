@@ -163,7 +163,7 @@ public class Scheduler {
                             floorPort,
                             Signal.DONE,
                             MessageTypes.FLOOR,
-                            workAssignment.getServiceFloor(),
+                            assignmentKey,
                             workAssignment.getFloorRequestId(),
                             workAssignment.getFloorRequestId(),
                             null);
