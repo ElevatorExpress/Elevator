@@ -1,7 +1,9 @@
 package util;
 
+import elevator.ElevatorSubsystem;
 import scheduler.Scheduler;
-import scheduler.SchedulerV2;
+import elevator.ElevatorControlSystem;
+//import scheduler.SchedulerV2;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -10,22 +12,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-public class SubSystemSharedState extends UnicastRemoteObject {
+public class SubSystemSharedState extends UnicastRemoteObject implements SubSystemSharedStateInterface {
 
     private HashMap <Integer, ElevatorStateUpdate> elevatorStates;
 
 
     // Placeholder this needsd to change
-    private HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments;
+    private HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments = new HashMap<>();
 
-    private ArrayList<WorkAssignment> newWorkAssignmentBuffer;
+    private ArrayList<WorkAssignment> newWorkAssignmentBuffer = new ArrayList<>();
     Scheduler scheduler;
-
-
-
-
-
-
 
 
     // If this method returns true then there has been updated floor requests. The ECS should reconsider.
@@ -33,6 +29,7 @@ public class SubSystemSharedState extends UnicastRemoteObject {
         elevatorStates = stateUpdate;
         return scheduler.handleECSUpdate();
     }
+
 
     public void setScheduler(Scheduler scheduler) {
         this.scheduler = scheduler;
@@ -80,6 +77,7 @@ public class SubSystemSharedState extends UnicastRemoteObject {
     public HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> getWorkAssignments() {
         return workAssignments;
     }
+
 
     public void addElevatorState(int elevatorId, ElevatorStateUpdate elevatorState) {
         elevatorStates.put(elevatorId, elevatorState);

@@ -1,8 +1,11 @@
 package elevator;
 
+import util.Direction;
 import util.Messages.SerializableMessage;
+import util.WorkAssignment;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -33,5 +36,23 @@ public class ElevatorRequestOrder {
             }
         }
         return groupedRequests.toArray(new SerializableMessage[0]);
+    }
+
+    public static synchronized ArrayList<WorkAssignment> getRequest(ArrayList<WorkAssignment> requests ) {
+        if (requests.isEmpty()) return new ArrayList<>();
+
+        Direction direction = requests.get(0).getDirection();
+        ArrayList<WorkAssignment> groupedRequests = new ArrayList<>();
+        ArrayList<WorkAssignment> temp = new ArrayList<>(requests);
+        for (WorkAssignment request : temp ) {
+            if(groupedRequests.size() >= MAX_REQUESTS) {
+                break;
+            }
+            if (request.getDirection() == direction) {
+                groupedRequests.add(request);
+                requests.remove(request);
+            }
+        }
+        return groupedRequests;
     }
 }

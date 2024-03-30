@@ -10,5 +10,5 @@ public abstract class AllocationStrategy {
     AllocationStrategy(SubSystemSharedState sharedState) {
         this.sharedState = sharedState;
     }
-    public abstract void allocate(ArrayList<WorkAssignment> workAssignments);
+    public abstract void allocate(WorkAssignment workAssignment);
 }

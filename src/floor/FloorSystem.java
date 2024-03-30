@@ -51,13 +51,6 @@ public class FloorSystem {
 
             // Recreating floor data
             FloorInfoReader.Data floorData = iterator.next();
-            FloorInfoReader.Data data = new FloorInfoReader.Data(
-                    floorData.time(),
-                    floorData.serviceFloor(),
-                    floorData.direction(),
-                    floorData.requestFloor(),
-                    floorData.error()
-            );
 
             //Create a request object with the above info
             String msgID = UUID.randomUUID().toString();
@@ -69,7 +62,7 @@ public class FloorSystem {
                     Integer.parseInt(floorData.serviceFloor()),
                     msgID,
                     msgID,
-                    data
+                    floorData
             );
 
             requestsBuffer.putIfAbsent(request.reqID(), request);

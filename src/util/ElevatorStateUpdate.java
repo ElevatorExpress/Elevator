@@ -2,9 +2,10 @@ package util;
 
 import util.Messages.Signal;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class ElevatorStateUpdate {
+public class ElevatorStateUpdate implements Serializable {
     private int elevatorId;
     private int curFloor;
     private int destinationFloor;
@@ -12,7 +13,7 @@ public class ElevatorStateUpdate {
     private ArrayList<WorkAssignment> workAssignments;
     private Signal stateSignal;
 
-    public ElevatorStateUpdate(int elevatorId, int floor, Direction direction, ArrayList<WorkAssignment> workAssignments) {
+    public ElevatorStateUpdate(int elevatorId, int floor, Direction direction, ArrayList<WorkAssignment> workAssignments)  {
         this.elevatorId = elevatorId;
         this.curFloor = floor;
         this.direction = direction;

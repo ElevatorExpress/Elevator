@@ -31,7 +31,7 @@ class ElevatorSubsystemTest {
                     8080
             );
             queue.listenAndFillBuffer();
-            elevator = new ElevatorSubsystem(queue, 1);
+            elevator = new ElevatorSubsystem( 1);
         } catch (SocketException | UnknownHostException  ignored) {}
 
     }
