@@ -56,11 +56,19 @@ public class ElevatorSubsystem extends Thread {
 
     private void incrementFloor() {
         //find if current floor and direction matches a request
+        int[] errorBit = {0};
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
             if (ert.getDirection() == universalDirection) {
                 if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
-                    wa.forEach(workAssignment -> {if (ert.getRequest() == workAssignment) {workAssignment.setPickupComplete();}});
+                    wa.forEach(workAssignment -> {
+                        if (ert.getRequest() == workAssignment) {
+                            workAssignment.setPickupComplete();
+                        }
+                        if (workAssignment.getErrorBit() != 0 && errorBit[0] != 0){
+                            errorBit[0] = workAssignment.getErrorBit();
+                        }
+                    });
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                     logger.info("Arrived at floor " + ert.getSourceFloor() + " to pick up passengers");
                     logger.info("wa check: " + wa);
@@ -152,16 +160,6 @@ public class ElevatorSubsystem extends Thread {
                 }
                 sendMessage();
 
-//            if (abs(floor - currentFloor) == 1) {
-//                Thread.sleep((long) (6140 + (1000 * 12.58))); // do we care for sleep time?
-//            } else {
-//                Thread.sleep((long) (1000 * ((4L / 2.53))));
-//                if (direction == Direction.UP) {
-//                    currentFloor++;
-//                } else {
-//                    currentFloor--;
-//                }
-//            }
         } catch (InterruptedException ie) {
             System.exit(1);
         } catch (IOException e) {
