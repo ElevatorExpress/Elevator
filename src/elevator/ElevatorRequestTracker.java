@@ -1,8 +1,6 @@
 package elevator;
 
 import util.Direction;
-import util.Messages.MessageTypes;
-import util.Messages.SerializableMessage;
 import util.Messages.Signal;
 import util.WorkAssignment;
 
@@ -78,25 +76,13 @@ public class ElevatorRequestTracker {
         return direction;
     }
 
-    /**
-     * @return The target floor
-     */
-    public int getFloorByStatus() {
-        //PICKING state represents a request that has been received, but the passengers have not been grabbed
-        if (status == RequestStatus.PICKING) {
-            return sourceFloor;
-        }
-        return destFloor;
-    }
 
     /**
      * Sets the request status
      */
     public void setStatus() {
-        switch (status) {
-            case UNSERVICED -> {
-                setStatus(RequestStatus.PICKING);
-            }
+        if (status == RequestStatus.UNSERVICED) {
+            setStatus(RequestStatus.PICKING);
         }
     }
 
@@ -114,17 +100,6 @@ public class ElevatorRequestTracker {
      */
     public Signal getSignal() {
         return request.getSignal();
-    }
-
-    /**
-     * Equals method from this object
-     * @param obj the object being compared to
-     * @return true is the objects are equal, false otherwise
-     */
-    public boolean equals(WorkAssignment obj) {
-        if (!(sourceFloor == obj.getServiceFloor())) return false;
-        if (!(destFloor == obj.getDestinationFloor())) return false;
-        return direction == obj.getDirection();
     }
 
 }

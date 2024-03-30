@@ -29,7 +29,7 @@ public class ElevatorControlSystem {
     /**
      * Creates an Elevator Control System
      */
-    public ElevatorControlSystem() throws IOException, NotBoundException, InterruptedException {
+    public ElevatorControlSystem(int numElevators) throws IOException, NotBoundException, InterruptedException {
         //No fault by default
         emergency = false;
         elevatorRequests = new ArrayList<>();
@@ -37,7 +37,7 @@ public class ElevatorControlSystem {
         //Grab state from shared object
         sharedState = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedSubSystemState");
         //Create individual elevators
-        createElevators(3);
+        createElevators(numElevators);
 
     }
 
@@ -135,7 +135,7 @@ public class ElevatorControlSystem {
 
 
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException {
-        ElevatorControlSystem elevatorController = new ElevatorControlSystem();
+        ElevatorControlSystem elevatorController = new ElevatorControlSystem(3);
         //The 100 ms wait causes this method to execute repeated with a small delay
         while (true) {
             elevatorController.runSystem();

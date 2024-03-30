@@ -1,6 +1,5 @@
 package util;
 
-import elevator.ElevatorRequestOrder;
 import util.Messages.SerializableMessage;
 
 import java.net.DatagramPacket;
@@ -49,9 +48,9 @@ public class MessageBuffer {
         ElevatorLogger logger = new ElevatorLogger("ReaderThread");
         Thread t = new Thread(() -> {
             try {
+                logger.info("Listening for packets indefinitely");
                 while (true) {
                     byte[] buff = new byte[1024];
-                    logger.info("Waiting for packet");
                     //Listens for messages
                     SerializableMessage message = MessageHelper.ReceiveMessage(socket, buff, new DatagramPacket(buff, buff.length));
                     //Add said messages to the buffer

@@ -1,37 +1,3 @@
-//package scheduler;
-//
-//import org.junit.runner.Runner;
-//import util.SubSystemSharedState;
-//
-//import java.rmi.AlreadyBoundException;
-//import java.rmi.RemoteException;
-//import java.rmi.registry.LocateRegistry;
-//import java.rmi.registry.Registry;
-//
-//public class SchedulerV2 implements Runnable {
-//    private SubSystemSharedState sharedState;
-//    Registry registry;
-//
-//
-//    public SchedulerV2(SubSystemSharedState sharedState) throws RemoteException, AlreadyBoundException {
-//        this.sharedState = sharedState;
-//        registry = LocateRegistry.getRegistry();
-//        registry.bind("SharedSubSystemState", sharedState);
-//    }
-//
-//
-//    public void schedule(){
-//        // Grab the state, then make assignents.
-//
-//    }
-//    public void run () {
-//        while (true) {
-//            // do something
-//
-//        }
-//    }
-//}
-
 package scheduler;
 
 import scheduler.strategies.AllocationStrategy;
@@ -49,7 +15,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -59,28 +24,16 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * assigning idle elevators to floor requests, and handling elevator status updates.
  */
 public class Scheduler {
-    private DatagramSocket inSocket;
     private DatagramSocket outSocket;
     private SchedulerState currentState;
     private SubSystemSharedState sharedState;
 
-    private Registry registry;
-
-    // Key is Message ID, Value is the message
-    //Requests are taken from the shared buffer and parsed into the appropriate buffer, these are requests that have yet
-    //to be serviced
-
     private static final ElevatorLogger logger = new ElevatorLogger("Scheduler");
 
-    private HashMap<String, WorkAssignment> assignedWork;
-
-    private int elevatorSubSystemPort;
     private int floorSubSystemPort;
     volatile boolean testStopBit;
     private MessageBuffer floorMessageBuffer;
     private AllocationStrategy allocationStrategy;
-
-    private ConcurrentLinkedDeque<WorkAssignment> pendingWorkAssignments;
     private Set<String> requestSet;
 
 
@@ -96,7 +49,7 @@ public class Scheduler {
         try {
             //Set up port to receive and send
             this.floorSubSystemPort = floorSubSystemPort;
-            inSocket = new DatagramSocket(schedulerPort, schedulerAddr);
+            DatagramSocket inSocket = new DatagramSocket(schedulerPort, schedulerAddr);
             InetSocketAddress inetSocketAddress = new InetSocketAddress(schedulerAddr, schedulerPort);
             outSocket = new DatagramSocket();
             floorMessageBuffer = new MessageBuffer("FloorMessageBuffer", inSocket, inetSocketAddress, schedulerPort);
@@ -104,12 +57,10 @@ public class Scheduler {
             this.sharedState = sharedState;
             LocateRegistry.createRegistry(1099);
             Naming.bind("SharedSubSystemState", sharedState);
-            assignedWork = new HashMap<>();
             requestSet = new HashSet<>();
             this.allocationStrategy = allocationStrategy;
             //Sets this object as the scheduler of the sharedState
             this.sharedState.setScheduler(this);
-//            floorMessageBuffer.listenAndFillBuffer();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -140,12 +91,11 @@ public class Scheduler {
                     int floorSenderPort = floorReq.senderPort();
                     int errorBit = Integer.parseInt(floorReq.data().error());
 
-                    WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal, errorBit);
+                    WorkAssignment workAssignment = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal, errorBit);
 
                     //Update the shared object with new work assignments
-                    logger.info("New Floor Request: " + wa);
-                    allocationStrategy.allocate(wa);
-                    sharedState.addNewWorkAssignment(wa);
+                    logger.info("Received Request: " + workAssignment);
+                    allocationStrategy.allocate(workAssignment);
                 }
                 //Signal that the Scheduler is done reading
                 doneServing();
@@ -153,38 +103,36 @@ public class Scheduler {
 
             //Check for completed assignments, remove them from the assigned work buffer and respond to the floor system
             if (sharedState.getWorkAssignments() == null) {
+
                 doneServing();
                 return updated;
             }
             for (int assignmentKey : sharedState.getWorkAssignments().keySet()) {
                 if (sharedState.getWorkAssignments().get(assignmentKey).isEmpty()) {
                     doneServing();
-                    return updated;
+
+                    continue;
                 }
-                ConcurrentLinkedDeque<WorkAssignment> wa = sharedState.getWorkAssignments().get(assignmentKey);
-                for (WorkAssignment workAssignment : wa) {
-                    assert wa != null;
+                ConcurrentLinkedDeque<WorkAssignment> workAssignments = sharedState.getWorkAssignments().get(assignmentKey);
+                for (WorkAssignment workAssignment : workAssignments) {
                     //If the current request is done
                     if (workAssignment.isPickupComplete() && workAssignment.isDropoffComplete() && requestSet.add(workAssignment.getFloorRequestId())) {
                         //Remove the assignment
                         sharedState.getWorkAssignments().get(assignmentKey).remove();
-                        String floorAddr = workAssignment.getSenderAddr();
-                        int floorPort = workAssignment.getSenderPort();
-                        logger.info(wa + " drop off: " + workAssignment.dropoffComplete);
+                        logger.info("Sending Request Completion:" + workAssignment);
                         //Constructs and sends a DONE message
                         SerializableMessage message = new SerializableMessage(
-                                floorAddr,
-                                floorPort,
+                                workAssignment.getSenderAddr(),
+                                workAssignment.getSenderPort(),
                                 Signal.DONE,
                                 MessageTypes.FLOOR,
                                 assignmentKey,
                                 workAssignment.getFloorRequestId(),
                                 workAssignment.getFloorRequestId(),
                                 null);
-                        MessageHelper.SendMessage(outSocket, message, InetAddress.getLocalHost(), floorSubSystemPort); //scheduler reads it
+                        MessageHelper.SendMessage(outSocket, message, InetAddress.getLocalHost(), floorSubSystemPort); //scheduler sends completed assignment to floor
                     }
                 }
-
             }
             doneServing();
         }
@@ -206,7 +154,7 @@ public class Scheduler {
     }
 
     /**
-     * Handle an ECS emergency, reallocates work requests
+     * Handle an ECS emergency, reallocates uncompleted work requests
      * @param workRequests The work requests to reallocate
      * @return False if succeeded
      */
@@ -217,8 +165,6 @@ public class Scheduler {
         return false;
     }
 
-
-
     /**
      * Starts the system
      */
@@ -227,7 +173,6 @@ public class Scheduler {
         currentState = SchedulerState.start(this);
         floorMessageBuffer.listenAndFillBuffer();
     }
-
 
     public static void main(String[] args) throws IOException {
         SubSystemSharedState sharedState = new SubSystemSharedState();
