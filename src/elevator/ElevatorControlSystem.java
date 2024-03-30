@@ -56,16 +56,19 @@ public class ElevatorControlSystem {
         }
     }
 
-    protected void updateScheduler() throws IOException, InterruptedException {
+    protected boolean updateScheduler() throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
         for (ElevatorSubsystem elevator : elevators) {
             ElevatorStateUpdate elevatorStateUpdate = elevator.getElevatorInfo();
             stateUpdate.put(elevator.getElevatorId(), elevatorStateUpdate);
             sharedState.addElevatorState(elevator.getElevatorId(),elevatorStateUpdate);
-            if (stateUpdate.get(elevator.getElevatorId()).getStateSignal() != Signal.IDLE) sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments())); // elevatorStateUpdate.getWorkAssignments() -> 7 -> 4
-            else sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>());
+//            System.out.println(elevator.getElevatorId() + " " + elevatorStateUpdate.getWorkAssignments());
+//            if (stateUpdate.get(elevator.getElevatorId()).getStateSignal() != Signal.IDLE)
+            sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments())); // elevatorStateUpdate.getWorkAssignments() -> 7 -> 4
+//            else sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>());
         }
-        notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
+//        System.out.println();
+        return notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
     }
 
     private void runSystem() throws InterruptedException, IOException {
@@ -73,8 +76,8 @@ public class ElevatorControlSystem {
             AssignRequest();
         }
         // if unchanged, it'll keep notifying with same info
-//        Thread.sleep(100);
-//        notified = updateScheduler(); // at some point you have 5 done and 5 undone -> "update" with this info -> 100ms later:
+        Thread.sleep(100);
+        notified = updateScheduler(); // at some point you have 5 done and 5 undone -> "update" with this info -> 100ms later:
     }
 
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException {
