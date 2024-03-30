@@ -6,6 +6,7 @@ import util.SubSystemSharedStateInterface;
 import util.WorkAssignment;
 
 import java.io.IOException;
+import java.net.*;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -57,16 +58,19 @@ public class ElevatorControlSystem {
         }
     }
 
-    protected synchronized void updateScheduler() throws IOException, InterruptedException {
+    protected synchronized boolean updateScheduler() throws IOException, InterruptedException {
         HashMap<Integer, ElevatorStateUpdate> stateUpdate = new HashMap<>();
         for (ElevatorSubsystem elevator : elevators) {
             ElevatorStateUpdate elevatorStateUpdate = elevator.getElevatorInfo();
             stateUpdate.put(elevator.getElevatorId(), elevatorStateUpdate);
             sharedState.addElevatorState(elevator.getElevatorId(),elevatorStateUpdate);
-            if (stateUpdate.get(elevator.getElevatorId()).getStateSignal() != Signal.IDLE) sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments())); // elevatorStateUpdate.getWorkAssignments() -> 7 -> 4
-            else sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>());
+//            System.out.println(elevator.getElevatorId() + " " + elevatorStateUpdate.getWorkAssignments());
+//            if (stateUpdate.get(elevator.getElevatorId()).getStateSignal() != Signal.IDLE)
+            sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments())); // elevatorStateUpdate.getWorkAssignments() -> 7 -> 4
+//            else sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>());
         }
-        notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
+//        System.out.println();
+        return notified = sharedState.ecsUpdate(stateUpdate); // this method is inside scheduler
     }
 
     private void runSystem() throws InterruptedException, IOException {
@@ -74,9 +78,9 @@ public class ElevatorControlSystem {
             if (notified) {
                 AssignRequest();
             }
-            // if unchanged, it'll keep notifying with same info
-//        Thread.sleep(100);
-//        notified = updateScheduler(); // at some point you have 5 done and 5 undone -> "update" with this info -> 100ms later:
+            // if unchanged, it'll keep notifying with same inf
+            Thread.sleep(100);
+            notified = updateScheduler(); // at some point you have 5 done and 5 undone -> "update" with this info -> 100ms later:
         }
     }
 

@@ -12,7 +12,6 @@ import util.states.ElevatorWorking;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 /**
  * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
@@ -28,8 +27,8 @@ public class ElevatorSubsystem extends Thread {
     private final int elevatorId ;
     private ElevatorState currentState;
     private final ElevatorLogger logger;
-    private volatile ArrayList<ElevatorRequestTracker> trackRequest = new ArrayList<>();
-    private ArrayList<WorkAssignment> wa = new ArrayList<>();
+    private volatile ArrayList<ElevatorRequestTracker> trackRequest;
+    private ArrayList<WorkAssignment> wa;
     private Direction universalDirection;
     private String msgID;
     private ElevatorStateUpdate elevatorInfo;
@@ -48,6 +47,8 @@ public class ElevatorSubsystem extends Thread {
         currentState = null;
         buttons = new ElevatorButtonPanel(MAX_LEVEL);
         universalDirection = Direction.ANY;
+        trackRequest = new ArrayList<>();
+        wa = new ArrayList<>();
         this.ecs = ecs;
     }
 
@@ -69,7 +70,6 @@ public class ElevatorSubsystem extends Thread {
                     });
                     elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
                     logger.info("Arrived at floor " + ert.getSourceFloor() + " to pick up passengers");
-                    logger.info("wa check: " + wa);
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
 
@@ -78,7 +78,6 @@ public class ElevatorSubsystem extends Thread {
                 }
                 else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
-                    logger.info("wa check: " + wa);
                     ert.setStatus(RequestStatus.DONE);
                     wa.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
@@ -166,7 +165,6 @@ public class ElevatorSubsystem extends Thread {
             logger.info("going to hard fault: " + hasError);
             if (!hasError) Thread.sleep((long) (1000 * ((4L / 2.53))));
             else Thread.sleep(6000);
-            //Thread.sleep(1000);
 
             if (universalDirection == Direction.UP) {
                 currentFloor++;
@@ -250,10 +248,10 @@ public class ElevatorSubsystem extends Thread {
     protected void addTrackedRequest(WorkAssignment newRequest) {
         wa.add(newRequest);
         if (universalDirection == Direction.ANY) universalDirection = newRequest.getDirection();
-        logger.info("Elevator received request from scheduler. Signal: " + newRequest.getSignal() + ", Request: " + newRequest);
         synchronized (trackRequest) {
             trackRequest.add(new ElevatorRequestTracker(RequestStatus.PICKING, newRequest));
         }
+        logger.info("Elevator received request from scheduler. Signal: " + newRequest.getSignal() + ", Request: " + newRequest + " requests size:" + trackRequest.size());
     }
 
     /**
@@ -295,7 +293,7 @@ public class ElevatorSubsystem extends Thread {
 
         while (true) {
             if (currentState instanceof ElevatorIdle) {
-                elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, null);
+                elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, wa);
                 elevatorInfo.setStateSignal(Signal.IDLE);
                 logger.info("Elevator is idle");
                 receiveMessage();

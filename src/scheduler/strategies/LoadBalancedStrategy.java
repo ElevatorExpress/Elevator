@@ -49,60 +49,30 @@ public class LoadBalancedStrategy extends AllocationStrategy{
 //
     @Override
     public void allocate(WorkAssignment workAssignment) {
-        boolean allocated = false;
         for (int elevatorId : sharedState.getElevatorStates().keySet()) {
-            ElevatorStateUpdate stateUsedForAllocation = sharedState.getElevatorStates().get(elevatorId);
-            if (stateUsedForAllocation.getDirection() == Direction.ANY) {
-                if (!(largestAssignment(elevatorId, sharedState.getWorkAssignments()))){
-                    sharedState.addWorkAssignment(elevatorId, workAssignment);
-                    allocated = true;
-                    break;
-                }
+            if (sharedState.getElevatorStates().keySet().size() == 1) sharedState.addWorkAssignment(elevatorId, workAssignment);
+            else if (sharedState.getWorkAssignments().get(elevatorId).isEmpty()) {
+                sharedState.addWorkAssignment(elevatorId, workAssignment);
+                break;
             }
-            else if (stateUsedForAllocation.getDirection() == Direction.DOWN) {
-                if (workAssignment.getDirection() == Direction.DOWN && workAssignment.getServiceFloor() < stateUsedForAllocation.getFloor()) {
-                    if (!(largestAssignment(elevatorId, sharedState.getWorkAssignments()))) {
-                        sharedState.addWorkAssignment(elevatorId, workAssignment);
-                        allocated = true;
-                        break;
-                    }
-                }
-            }
-            else if (stateUsedForAllocation.getDirection() == Direction.UP){
-               if (workAssignment.getServiceFloor() > stateUsedForAllocation.getFloor()) {
-                   if (!(largestAssignment(elevatorId, sharedState.getWorkAssignments()))) {
-                       sharedState.addWorkAssignment(elevatorId, workAssignment);
-                       allocated = true;
-                       break;
-                   }
-               }
+            else if (smallestAssignment(elevatorId, sharedState.getWorkAssignments())) {
+                sharedState.addWorkAssignment(elevatorId, workAssignment);
+                break;
             }
         }
-        if (!allocated) sharedState.addWorkAssignment(1, workAssignment);
-
-        for (int elevatorId : sharedState.getElevatorStates().keySet()) {
-            ElevatorStateUpdate stateUsedForAllocation = sharedState.getElevatorStates().get(elevatorId);
-//            if (stateUsedForAllocation.getWorkAssignments() != null) {
-                System.out.println(elevatorId + ": " + stateUsedForAllocation.getDirection() + " " + stateUsedForAllocation.getFloor() + " " + sharedState.getWorkAssignments().get(elevatorId).size());
-//            }
-//            else {
-//                System.out.println(elevatorId + ": " + stateUsedForAllocation.getDirection() + " " + stateUsedForAllocation.getFloor());
-//
-//            }
-        }
-        System.out.println();
     }
 
 
-    public boolean largestAssignment(int elevatorId, HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments) {
-        int id = 0;
-        int max = 0;
+    public boolean smallestAssignment(int elevatorId, HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments) {
+        int id = elevatorId;
+        int min = workAssignments.get(elevatorId).size();
         for (int eleId : workAssignments.keySet()) {
-            if (workAssignments.get(eleId).size() >= max) {
-                max = workAssignments.get(eleId).size();
+            if (workAssignments.get(eleId).size() <= min) {
+                min = workAssignments.get(eleId).size();
                 id = eleId;
             }
         }
+        if (workAssignments.keySet().size() == 1) return false;
         return id == elevatorId;
     }
 }
