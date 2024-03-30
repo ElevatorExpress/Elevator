@@ -132,8 +132,9 @@ public class Scheduler {
                 Signal signal = floorReq.signal();
                 String floorSenderAddr = floorReq.senderAddr();
                 int floorSenderPort = floorReq.senderPort();
+                int errorBit = Integer.parseInt(floorReq.data().error());
 
-                WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal);
+                WorkAssignment wa = new WorkAssignment(serviceFloor, destinationFloor, assignmentTimeStamp, direction, reqId, floorSenderAddr, floorSenderPort, signal, errorBit);
 
 //            newWorkAssignments.add(wa);
                 //Update the shared object with new work assignments

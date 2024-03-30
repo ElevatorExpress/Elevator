@@ -23,11 +23,12 @@ public class WorkAssignment implements Serializable {
     private Direction direction;
     private String senderAddr;
     private int senderPort;
+    private int errorBit;
 
 
 
 
-    public WorkAssignment(int serviceFloor, int destinationFloor, String assignmentTimeStamp, Direction direction, String floorRequestId, String senderAddr, int senderPort, Signal signal) {
+    public WorkAssignment(int serviceFloor, int destinationFloor, String assignmentTimeStamp, Direction direction, String floorRequestId, String senderAddr, int senderPort, Signal signal, int errorBit) {
         this.serviceFloor = serviceFloor;
         this.destinationFloor = destinationFloor;
         this.assignmentTimeStamp = assignmentTimeStamp;
@@ -37,6 +38,7 @@ public class WorkAssignment implements Serializable {
         this.senderAddr = senderAddr;
         this.senderPort = senderPort;
         this.signal = signal;
+        this.errorBit = errorBit;
     }
 
     public int getServiceFloor() {
@@ -62,6 +64,10 @@ public class WorkAssignment implements Serializable {
 
     public Direction getDirection() {
         return direction;
+    }
+
+    public int getErrorBit() {
+        return errorBit;
     }
 
     public void setPickupComplete() {

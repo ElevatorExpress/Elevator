@@ -82,7 +82,18 @@ public class ElevatorSubsystem extends Thread {
         if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP) universalDirection = Direction.DOWN;
         else if (currentFloor == 0 && universalDirection == Direction.DOWN) universalDirection = Direction.UP;
 
-        travelDelay(); // go up one floor
+        // Delay for a floor. Catches hard faults
+        try {
+            Thread travelDelayThread = new Thread(() -> { this.travelDelay(); });
+            travelDelayThread.start();
+            travelDelayThread.join(5000);
+            if (travelDelayThread.isAlive()){
+                System.out.println("HARD FAULT has occurred, elevator took too long to reach destination");
+                // Make this elevator Idle
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -129,10 +140,11 @@ public class ElevatorSubsystem extends Thread {
      * Simulates the delay an elevator would need to reach a specific floor
      *
      */
-    private void travelDelay() {
+    private void travelDelay(int error) {
         try {
-//            Thread.sleep((long) (1000 * ((4L / 2.53))));
-            Thread.sleep(1000);
+            Thread.sleep((long) (1000 * ((4L / 2.53))));
+            //Thread.sleep(1000);
+
             if (universalDirection == Direction.UP) {
                     currentFloor++;
                 } else {
