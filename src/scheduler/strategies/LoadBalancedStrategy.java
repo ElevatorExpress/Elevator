@@ -52,7 +52,6 @@ public class LoadBalancedStrategy extends AllocationStrategy{
                 id = eleId;
             }
         }
-        if (workAssignments.keySet().size() == 1) return false;
         return id == elevatorId;
     }
 }
