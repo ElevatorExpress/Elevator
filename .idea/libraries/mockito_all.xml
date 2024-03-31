@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="mockito.all" type="repository">
-    <properties maven-id="org.mockito:mockito-all:1.10.19" />
+    <properties maven-id="org.mockito:mockito-all:LATEST" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/mockito/mockito-all/1.10.19/mockito-all-1.10.19.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/mockito/mockito-all/2.0.2-beta/mockito-all-2.0.2-beta.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

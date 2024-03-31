@@ -93,6 +93,8 @@ public class MessageBuffer {
         MessageHelper.SendMessages(socket,  messages, address.getAddress(), port);
     }
 
-
+    public LinkedBlockingQueue<SerializableMessage> getMessageBuffer() {
+        return messageBuffer;
+    }
 }
 
