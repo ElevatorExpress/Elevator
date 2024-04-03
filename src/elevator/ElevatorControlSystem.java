@@ -74,9 +74,12 @@ public class ElevatorControlSystem {
             for (WorkAssignment newRequest : sharedState.getWorkAssignments().get(elevator.getElevatorId())) {
                 //If the request does not already exist
                 if (!elevatorRequests.contains(newRequest)) {
-                    //Give the request to the elevator
-                    elevator.addTrackedRequest(newRequest);
-                    elevatorRequests.add(newRequest);
+                    if(!elevator.isElevatorFull()) {
+                        elevator.addPerson();
+                        //Give the request to the elevator
+                        elevator.addTrackedRequest(newRequest);
+                        elevatorRequests.add(newRequest);
+                    }
                 }
             }
         }
@@ -135,7 +138,7 @@ public class ElevatorControlSystem {
 
 
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException {
-        ElevatorControlSystem elevatorController = new ElevatorControlSystem(3);
+        ElevatorControlSystem elevatorController = new ElevatorControlSystem(1);
         //The 100 ms wait causes this method to execute repeated with a small delay
         while (true) {
             elevatorController.runSystem();

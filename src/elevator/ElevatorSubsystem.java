@@ -36,6 +36,7 @@ public class ElevatorSubsystem extends Thread {
     private ElevatorStateUpdate elevatorInfo;
     //Our simulated building has 22 floors
     private final int MAX_LEVEL = 22;
+    private int capacity = 0;
     private final ElevatorControlSystem ecs;
     private boolean stopBit = false;
 
@@ -105,6 +106,7 @@ public class ElevatorSubsystem extends Thread {
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
                     //Mark request as complete
                     ert.setStatus(RequestStatus.DONE);
+                    capacity--;
                     allWorkAssignments.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
                             workAssignment.setDropoffComplete();
@@ -260,6 +262,15 @@ public class ElevatorSubsystem extends Thread {
      */
     public int getElevatorId() {
         return elevatorId;
+    }
+
+    public boolean isElevatorFull() {
+        logger.info("Elevator has: " + capacity);
+        return capacity >= 2;
+    }
+
+    public void addPerson() {
+        capacity++;
     }
 
     /**
