@@ -142,6 +142,10 @@ public class Scheduler {
         return updated;
     }
 
+    public SubSystemSharedState getSharedState() {
+        return sharedState;
+    }
+
     /**
      * Done reading event
      */
@@ -149,6 +153,9 @@ public class Scheduler {
         currentState = currentState.handleDoneReadingRequest();
     }
 
+    public MessageBuffer getMessageBuffer() {
+        return floorMessageBuffer;
+    }
     /**
      * Done serving event
      */

@@ -32,7 +32,7 @@ public class ElevatorSubsystem extends Thread {
     private final ElevatorLogger logger;
     private volatile ArrayList<ElevatorRequestTracker> trackRequest;
     //List of assignments for the elevator
-    private final ArrayList<WorkAssignment> wa;
+    private final ArrayList<WorkAssignment> allWorkAssignments;
     //Current direction of the elevator
     private Direction universalDirection;
     private ElevatorStateUpdate elevatorInfo;
@@ -55,7 +55,7 @@ public class ElevatorSubsystem extends Thread {
         //Direction is not picked yet
         universalDirection = Direction.ANY;
         trackRequest = new ArrayList<>();
-        wa = new ArrayList<>();
+        allWorkAssignments = new ArrayList<>();
         elevatorListeners = new ArrayList<>();
         this.ecs = ecs;
     }
@@ -77,7 +77,7 @@ public class ElevatorSubsystem extends Thread {
                     if (errorBit == 2) {
                         majorDelay = true;
                         //Remove the flagged request from the list
-                        wa.remove(ert.getRequest());
+                        allWorkAssignments.remove(ert.getRequest());
                     }
 
                     notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
@@ -85,7 +85,7 @@ public class ElevatorSubsystem extends Thread {
                     verifyDoorDelay(errorBit);
 
                     //If there are no errors signal that the passengers were picked up
-                    wa.forEach(workAssignment -> {
+                    allWorkAssignments.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
                             workAssignment.setPickupComplete();
                             workAssignment.setSignal(Signal.WORKING);
@@ -93,7 +93,7 @@ public class ElevatorSubsystem extends Thread {
                     });
 
                     //Send state update
-                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
                     setElevatorInfoSignal(Signal.WORKING);
                     //Output what happened
                     logger.info("Picking up passengers from: " + ert.getSourceFloor() + ". Destination: " + ert.getDestFloor());
@@ -113,14 +113,14 @@ public class ElevatorSubsystem extends Thread {
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
                     //Mark request as complete
                     ert.setStatus(RequestStatus.DONE);
-                    wa.forEach(workAssignment -> {
+                    allWorkAssignments.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
                             workAssignment.setDropoffComplete();
                             workAssignment.setSignal(Signal.DONE);
                         }
                     });
                     //Signal that the elevator is done
-                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
                     setElevatorInfoSignal(Signal.DONE);
                     //Remove the completed request
                     trackRequest.remove(ert);
@@ -154,14 +154,14 @@ public class ElevatorSubsystem extends Thread {
                 //Output what happened
                 logger.info("HARD FAULT has occurred, elevator took too long to reach destination");
                 //Signal elevator had a fault
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
                 setElevatorInfoSignal(Signal.EMERG);
                 notifyMovingSubscribers(ElevatorListener.Moving.EMERG);
-                ecs.emergencyState(elevatorId, wa);
+                ecs.emergencyState(elevatorId, allWorkAssignments);
                 //Clear out the requests of this elevator
                 trackRequest.clear();
             } else if (!stateUpdated) {
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
                 setElevatorInfoSignal(getElevatorInfo().getStateSignal());
             }
         } catch (InterruptedException | IOException e) {
@@ -240,7 +240,7 @@ public class ElevatorSubsystem extends Thread {
      * @param newRequest the request that is going to be tracked
      */
     protected void addTrackedRequest(WorkAssignment newRequest) {
-        wa.add(newRequest);
+        allWorkAssignments.add(newRequest);
         //Sets the direction of the elevator if it does not have one
         if (universalDirection == Direction.ANY) universalDirection = newRequest.getDirection();
         //Grabs the lock for the trackRequest and add the request to it
@@ -303,7 +303,7 @@ public class ElevatorSubsystem extends Thread {
             //If the elevator is idle
             if (currentState instanceof ElevatorIdle) {
                 //Make new update event with corresponding values
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, wa));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, allWorkAssignments));
                 //Set elevator state
                 setElevatorInfoSignal(Signal.IDLE);
                 logger.info("Elevator is idle");
@@ -312,7 +312,7 @@ public class ElevatorSubsystem extends Thread {
                 receiveRequestEvent();
             } else if (currentState instanceof ElevatorWorking) {
                 //Make new update event with corresponding values
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
                 //Set elevator state
                 setElevatorInfoSignal(Signal.WORKING);
                 notifyDirectionSubscribers();
