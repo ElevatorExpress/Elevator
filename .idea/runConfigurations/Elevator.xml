@@ -1,7 +1,8 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Elevator" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="elevator.ElevatorControlSystem" />
+    <option name="MAIN_CLASS_NAME" value="gui.ElevatorDisplayApp" />
     <module name="Elevator" />
+    <option name="VM_PARAMETERS" value="--module-path $USER_HOME$/dev/javafx-sdk-22/lib --add-modules javafx.controls,javafx.fxml --add-exports javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

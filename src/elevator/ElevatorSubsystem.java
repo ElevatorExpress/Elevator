@@ -62,6 +62,7 @@ public class ElevatorSubsystem extends Thread {
      */
     private void incrementFloor() {
         boolean majorDelay = false;
+        boolean stateUpdated = false;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
             //If the current request matches the direction of the elevator
@@ -88,12 +89,13 @@ public class ElevatorSubsystem extends Thread {
                     });
 
                     //Send state update
-                    elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
-                    elevatorInfo.setStateSignal(Signal.WORKING);
+                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                    setElevatorInfoSignal(Signal.WORKING);
                     //Output what happened
                     logger.info("Picking up passengers from: " + ert.getSourceFloor() + ". Destination: " + ert.getDestFloor());
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
+                    stateUpdated = true;
                 }
                 //If the elevator is at the floor it is expecting to drop off passengers
                 else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
@@ -112,10 +114,11 @@ public class ElevatorSubsystem extends Thread {
                         }
                     });
                     //Signal that the elevator is done
-                    elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
-                    elevatorInfo.setStateSignal(Signal.DONE);
+                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                    setElevatorInfoSignal(Signal.DONE);
                     //Remove the completed request
                     trackRequest.remove(ert);
+                    stateUpdated = true;
                 }
             }
         }
@@ -138,11 +141,14 @@ public class ElevatorSubsystem extends Thread {
                 //Output what happened
                 logger.info("HARD FAULT has occurred, elevator took too long to reach destination");
                 //Signal elevator had a fault
-                elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
-                elevatorInfo.setStateSignal(Signal.EMERG);
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                setElevatorInfoSignal(Signal.EMERG);
                 ecs.emergencyState(elevatorId, wa);
                 //Clear out the requests of this elevator
                 trackRequest.clear();
+            } else if (!stateUpdated) {
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
+                setElevatorInfoSignal(getElevatorInfo().getStateSignal());
             }
         } catch (InterruptedException | IOException e) {
             throw new RuntimeException(e);
@@ -250,9 +256,9 @@ public class ElevatorSubsystem extends Thread {
     public void receiveRequestEvent(){
         currentState = currentState.handleReceiveRequest();
     }
-    public ElevatorStateUpdate getElevatorInfo() {
-        return elevatorInfo;
-    }
+    public synchronized ElevatorStateUpdate getElevatorInfo() { return elevatorInfo; }
+    public synchronized void setElevatorInfo(ElevatorStateUpdate info) { elevatorInfo = info; }
+    public synchronized void setElevatorInfoSignal(Signal s) {elevatorInfo.setStateSignal(s);}
 
     /**
      * Gets the elevatorId of this elevator
@@ -282,18 +288,18 @@ public class ElevatorSubsystem extends Thread {
             //If the elevator is idle
             if (currentState instanceof ElevatorIdle) {
                 //Make new update event with corresponding values
-                elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, wa);
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, wa));
                 //Set elevator state
-                elevatorInfo.setStateSignal(Signal.IDLE);
+                setElevatorInfoSignal(Signal.IDLE);
                 logger.info("Elevator is idle");
                 //Receive requests from the scheduler
                 receiveMessage();
                 receiveRequestEvent();
             } else if (currentState instanceof ElevatorWorking) {
                 //Make new update event with corresponding values
-                elevatorInfo = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa);
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
                 //Set elevator state
-                elevatorInfo.setStateSignal(Signal.WORKING);
+                setElevatorInfoSignal(Signal.WORKING);
                 //Make the elevator move until there are no requests left
                 while (!trackRequest.isEmpty()) {
                     incrementFloor();

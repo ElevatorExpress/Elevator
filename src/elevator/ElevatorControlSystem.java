@@ -1,5 +1,6 @@
 package elevator;
 
+import gui.ECSListener;
 import util.ElevatorStateUpdate;
 import util.SubSystemSharedStateInterface;
 import util.WorkAssignment;
@@ -8,8 +9,7 @@ import java.io.IOException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
@@ -20,11 +20,12 @@ public class ElevatorControlSystem {
 
     //List of elevator requests
     private final ArrayList<WorkAssignment> elevatorRequests;
-    private final ArrayList<ElevatorSubsystem> elevators;
+    private final List<ElevatorSubsystem> elevators;
     private final SubSystemSharedStateInterface sharedState;
     private boolean notified = false;
     //If there is a fault on an elevator
     private boolean emergency;
+    private final ArrayList<ECSListener> ecsListeners;
 
     /**
      * Creates an Elevator Control System
@@ -33,7 +34,8 @@ public class ElevatorControlSystem {
         //No fault by default
         emergency = false;
         elevatorRequests = new ArrayList<>();
-        elevators = new ArrayList<>();
+        elevators = Collections.synchronizedList(new ArrayList<>());
+        ecsListeners = new ArrayList<>();
         //Grab state from shared object
         sharedState = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedSubSystemState");
         //Create individual elevators
@@ -97,13 +99,14 @@ public class ElevatorControlSystem {
             sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments()));
         }
         //RMI to the scheduler, it will process these requests and elevator information
+        notifyElevatorEvent(stateUpdate);
         return notified = sharedState.ecsUpdate(stateUpdate);
     }
 
     /**
      * Runs the system once
      */
-    private void runSystem() throws InterruptedException, IOException {
+    public void runSystem() throws InterruptedException, IOException {
         if (!emergency){
             if (notified) {
                 AssignRequest();
@@ -122,6 +125,7 @@ public class ElevatorControlSystem {
     public synchronized void emergencyState(int elevatorId, ArrayList<WorkAssignment> requests) throws RemoteException {
         emergency = true;
         notified = false;
+        notifyElevatorEvent(Map.of(elevatorId, elevators.get(elevatorId).getElevatorInfo()));
         //Remove unserviced requests from the stopped elevator
         elevators.removeIf((elevatorSubsystem -> elevatorSubsystem.getElevatorId() == elevatorId));
         //Remove the stopped elevator from the scheduler
@@ -133,13 +137,15 @@ public class ElevatorControlSystem {
         AssignRequest();
     }
 
+    /**
+     * Updates all elevator event subscribers with an elevator update hashmap
+     */
+    public void notifyElevatorEvent(Map<Integer, ElevatorStateUpdate> updateHashMap) {
+        ecsListeners.forEach(ecsListener -> ecsListener.updateElevators(updateHashMap));
+    }
 
-    public static void main(String[] args) throws IOException, NotBoundException, InterruptedException {
-        ElevatorControlSystem elevatorController = new ElevatorControlSystem(3);
-        //The 100 ms wait causes this method to execute repeated with a small delay
-        while (true) {
-            elevatorController.runSystem();
-        }
+    public void subscribeElevatorEvent(ECSListener ecsListener){
+        ecsListeners.add(ecsListener);
     }
 
 }

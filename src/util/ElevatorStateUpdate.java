@@ -2,8 +2,11 @@ package util;
 
 import util.Messages.Signal;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class ElevatorStateUpdate implements Serializable {
     private final int elevatorId;
@@ -25,6 +28,18 @@ public class ElevatorStateUpdate implements Serializable {
         this.curFloor = floor;
         this.direction = direction;
         this.workAssignments = workAssignments;
+    }
+
+    public static int getElevatorCount() throws FileNotFoundException {
+        File elevatorInfo = new File("./elevators.info");
+        Scanner eScanner = new Scanner(elevatorInfo);
+
+        int numElevators = 1;
+        if (eScanner.hasNext()){
+            String s = eScanner.next();
+            numElevators = Integer.parseInt(s);
+        }
+        return numElevators;
     }
 
     /**
@@ -68,7 +83,7 @@ public class ElevatorStateUpdate implements Serializable {
     }
 
     /**
-     * Getsthe current destination of the elevator
+     * Gets the current destination of the elevator
      * @return The number representing the elevator's current target
      */
     public int getDestinationFloor() {

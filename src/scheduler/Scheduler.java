@@ -13,9 +13,14 @@ import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.rmi.Naming;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 
@@ -109,8 +114,6 @@ public class Scheduler {
             }
             for (int assignmentKey : sharedState.getWorkAssignments().keySet()) {
                 if (sharedState.getWorkAssignments().get(assignmentKey).isEmpty()) {
-                    doneServing();
-
                     continue;
                 }
                 ConcurrentLinkedDeque<WorkAssignment> workAssignments = sharedState.getWorkAssignments().get(assignmentKey);
@@ -174,11 +177,10 @@ public class Scheduler {
         floorMessageBuffer.listenAndFillBuffer();
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws RemoteException, UnknownHostException {
         SubSystemSharedState sharedState = new SubSystemSharedState();
         AllocationStrategy allocationStrategy1 = new LoadBalancedStrategy(sharedState);
-        Scheduler s = new Scheduler(InetAddress.getLocalHost(),8080, 8082,allocationStrategy1,sharedState);
-
+        Scheduler s = new Scheduler(InetAddress.getLocalHost(), 8080, 8082, allocationStrategy1, sharedState);
         s.startSystem();
     }
 
