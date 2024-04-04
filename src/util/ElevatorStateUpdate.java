@@ -15,6 +15,7 @@ public class ElevatorStateUpdate implements Serializable {
     private Direction direction;
     private ArrayList<WorkAssignment> workAssignments;
     private Signal stateSignal;
+    private boolean isFull = false;
 
     /**
      * Creates an elevator state update
@@ -23,11 +24,12 @@ public class ElevatorStateUpdate implements Serializable {
      * @param direction The direction it is traveling
      * @param workAssignments It's work assignments
      */
-    public ElevatorStateUpdate(int elevatorId, int floor, Direction direction, ArrayList<WorkAssignment> workAssignments)  {
+    public ElevatorStateUpdate(int elevatorId, int floor, Direction direction, ArrayList<WorkAssignment> workAssignments, boolean isFull)  {
         this.elevatorId = elevatorId;
         this.curFloor = floor;
         this.direction = direction;
         this.workAssignments = workAssignments;
+        this.isFull = isFull;
     }
 
     public static int getElevatorCount() throws FileNotFoundException {

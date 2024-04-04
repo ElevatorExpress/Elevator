@@ -25,7 +25,7 @@ public class LoadBalancedStrategyTest {
     static void setUp() {
         try {
             HashMap<Integer, ElevatorStateUpdate> testStates = new HashMap<>();
-            testStates.put(1, new ElevatorStateUpdate(1, 1, Direction.ANY, null));
+            testStates.put(1, new ElevatorStateUpdate(1, 1, Direction.ANY, null, false));
             sharedState = new SubSystemSharedState();
             sharedState.setElevatorStates(testStates);
             HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> testWorkAssignments = new HashMap<>();

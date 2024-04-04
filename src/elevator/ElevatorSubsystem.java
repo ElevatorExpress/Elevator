@@ -38,8 +38,16 @@ public class ElevatorSubsystem extends Thread {
     private ElevatorStateUpdate elevatorInfo;
     //Our simulated building has 22 floors
     private final int MAX_LEVEL = 22;
+    private int capacity = 0;
     private final ElevatorControlSystem ecs;
     private boolean stopBit = false;
+    private final int MAX_PEOPLE = 5;
+    private final int FLOOR_TRAVEL_TIME = 10000;
+    private final int FLOOR_TRAVEL_FAULT_TIME = 20000;
+    private final int OPEN_CLOSE_DOORS = 3000;
+    private final int OPEN_CLOSE_DOORS_FAULT = 5000;
+    private final int PASSENGER_DELAY = 5000;
+
 
 
     /**
@@ -66,10 +74,11 @@ public class ElevatorSubsystem extends Thread {
     private void incrementFloor() {
         boolean majorDelay = false;
         boolean stateUpdated = false;
+        boolean doorsOpen = false;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
             //If the current request matches the direction of the elevator
-            if (ert.getDirection() == universalDirection) {
+            if (!isFull() && ert.getDirection() == universalDirection) {
                 //If the elevator is at the floor it is expecting to pick up passengers
                 if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
                     int errorBit = ert.getRequest().getErrorBit();
@@ -82,7 +91,15 @@ public class ElevatorSubsystem extends Thread {
 
                     notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
                     //Simulates the doors opening at a floor
-                    verifyDoorDelay(errorBit);
+                    if(!doorsOpen) {
+                        verifyDoorDelay(errorBit);
+                        doorsOpen = true;
+                    }
+                    //Simulate passenger exiting elevator
+                    try {
+                        Thread.sleep(PASSENGER_DELAY);
+                    } catch (Exception ignored) {}
+                    capacity++;
 
                     //If there are no errors signal that the passengers were picked up
                     allWorkAssignments.forEach(workAssignment -> {
@@ -93,7 +110,7 @@ public class ElevatorSubsystem extends Thread {
                     });
 
                     //Send state update
-                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
+                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
                     setElevatorInfoSignal(Signal.WORKING);
                     //Output what happened
                     logger.info("Picking up passengers from: " + ert.getSourceFloor() + ". Destination: " + ert.getDestFloor());
@@ -107,8 +124,17 @@ public class ElevatorSubsystem extends Thread {
                     int errorBit = ert.getRequest().getErrorBit();
 
                     notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
-                    //Simulate dropping passengers off
-                    verifyDoorDelay(errorBit);
+                    //Simulate opening the doors
+                    if(!doorsOpen) {
+                        verifyDoorDelay(errorBit);
+                        doorsOpen = true;
+                    }
+                    //Simulate passenger exiting elevator
+                    try {
+                        Thread.sleep(PASSENGER_DELAY);
+                    } catch (Exception ignored) {}
+                    capacity--;
+
                     //Output what happened
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
                     //Mark request as complete
@@ -120,13 +146,17 @@ public class ElevatorSubsystem extends Thread {
                         }
                     });
                     //Signal that the elevator is done
-                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
+                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
                     setElevatorInfoSignal(Signal.DONE);
                     //Remove the completed request
                     trackRequest.remove(ert);
                     stateUpdated = true;
                 }
             }
+        }
+        //Simulates the doors opening at a floor
+        if(doorsOpen) {
+            verifyDoorDelay(0);
         }
         notifyMovingSubscribers(ElevatorListener.Moving.MOVING);
 
@@ -149,19 +179,19 @@ public class ElevatorSubsystem extends Thread {
             //Start the timer
             travelDelayThread.start();
             //If the timer is running for more than 5s a hard fault occurred
-            travelDelayThread.join(5000);
+            travelDelayThread.join(FLOOR_TRAVEL_FAULT_TIME);
             if (travelDelayThread.isAlive()){
                 //Output what happened
                 logger.info("HARD FAULT has occurred, elevator took too long to reach destination");
                 //Signal elevator had a fault
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
                 setElevatorInfoSignal(Signal.EMERG);
                 notifyMovingSubscribers(ElevatorListener.Moving.EMERG);
                 ecs.emergencyState(elevatorId, allWorkAssignments);
                 //Clear out the requests of this elevator
                 trackRequest.clear();
             } else if (!stateUpdated) {
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
                 setElevatorInfoSignal(getElevatorInfo().getStateSignal());
             }
         } catch (InterruptedException | IOException e) {
@@ -182,7 +212,7 @@ public class ElevatorSubsystem extends Thread {
                 Thread doorDelayThread = new Thread(() -> this.doorDelay(finalErrorBit == 1));
                 //Start the timer and wait the delay
                 doorDelayThread.start();
-                doorDelayThread.join(12600);
+                doorDelayThread.join(OPEN_CLOSE_DOORS_FAULT);
                 //If the thread is still active after the delay an error has occurred
                 if (doorDelayThread.isAlive()) {
                     //Output what happened
@@ -204,9 +234,9 @@ public class ElevatorSubsystem extends Thread {
     private void travelDelay(boolean hasError) {
         try {
             //Normal delay of each floor
-            if (!hasError) { Thread.sleep((long) (1000 * ((4L / 2.53)))); }
-            //If there is an error being injected
-            else { Thread.sleep(6000); }
+            if (!hasError) { Thread.sleep(FLOOR_TRAVEL_TIME); }
+            //If there is an error being injected take longer than the allowed time
+            else { Thread.sleep((long) (FLOOR_TRAVEL_FAULT_TIME * 1.5)); }
 
             //If the elevator is going up
             if (universalDirection == Direction.UP) {
@@ -223,16 +253,24 @@ public class ElevatorSubsystem extends Thread {
     }
 
     /**
-     * Simulates the delay of a door opening
+     * Simulates the delay of a door opening or closing
      * @param hasError if an error is getting injected
      */
     private void doorDelay(boolean hasError) {
         try {
-            //If there is no error the door cycle will take 12.5s
-            if (!hasError) { Thread.sleep(12580); }
+            //If there is no error the doors will open for 3s
+            if (!hasError) { Thread.sleep(OPEN_CLOSE_DOORS); }
             //If there is an error delay extra time
-            else { Thread.sleep(15000); }
+            else { Thread.sleep((long) (OPEN_CLOSE_DOORS_FAULT * 1.5)); }
         } catch (InterruptedException ignored){}
+    }
+
+    /**
+     * Checks if the elevator is full
+     * @return true if the elevator is full, false if not
+     */
+    private boolean isFull() {
+        return this.capacity >= MAX_PEOPLE;
     }
 
     /**
@@ -303,7 +341,7 @@ public class ElevatorSubsystem extends Thread {
             //If the elevator is idle
             if (currentState instanceof ElevatorIdle) {
                 //Make new update event with corresponding values
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, allWorkAssignments));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor,Direction.ANY, allWorkAssignments, isFull()));
                 //Set elevator state
                 setElevatorInfoSignal(Signal.IDLE);
                 logger.info("Elevator is idle");
@@ -312,7 +350,7 @@ public class ElevatorSubsystem extends Thread {
                 receiveRequestEvent();
             } else if (currentState instanceof ElevatorWorking) {
                 //Make new update event with corresponding values
-                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments));
+                setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
                 //Set elevator state
                 setElevatorInfoSignal(Signal.WORKING);
                 notifyDirectionSubscribers();
