@@ -1,5 +1,6 @@
 package elevator;
 
+import gui.ElevatorListener;
 import util.ElevatorStateUpdate;
 import util.SubSystemSharedStateInterface;
 import util.WorkAssignment;
@@ -8,8 +9,7 @@ import java.io.IOException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
@@ -20,7 +20,7 @@ public class ElevatorControlSystem {
 
     //List of elevator requests
     private final ArrayList<WorkAssignment> elevatorRequests;
-    private final ArrayList<ElevatorSubsystem> elevators;
+    private final List<ElevatorSubsystem> elevators;
     private final SubSystemSharedStateInterface sharedState;
     private boolean notified = false;
     //If there is a fault on an elevator
@@ -33,7 +33,7 @@ public class ElevatorControlSystem {
         //No fault by default
         emergency = false;
         elevatorRequests = new ArrayList<>();
-        elevators = new ArrayList<>();
+        elevators = Collections.synchronizedList(new ArrayList<>());
         //Grab state from shared object
         sharedState = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedSubSystemState");
         //Create individual elevators
@@ -103,7 +103,7 @@ public class ElevatorControlSystem {
     /**
      * Runs the system once
      */
-    private void runSystem() throws InterruptedException, IOException {
+    public void runSystem() throws InterruptedException, IOException {
         if (!emergency){
             if (notified) {
                 AssignRequest();
@@ -133,13 +133,8 @@ public class ElevatorControlSystem {
         AssignRequest();
     }
 
-
-    public static void main(String[] args) throws IOException, NotBoundException, InterruptedException {
-        ElevatorControlSystem elevatorController = new ElevatorControlSystem(3);
-        //The 100 ms wait causes this method to execute repeated with a small delay
-        while (true) {
-            elevatorController.runSystem();
-        }
+    public void subscribeElevatorEvent(ElevatorListener elevatorListener){
+        elevators.forEach(e -> e.subscribe(elevatorListener));
     }
 
 }
