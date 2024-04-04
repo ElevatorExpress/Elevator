@@ -100,6 +100,7 @@ public class ElevatorSubsystem extends Thread {
                         Thread.sleep(PASSENGER_DELAY);
                     } catch (Exception ignored) {}
                     capacity++;
+                    notifyupdateCapacity();
 
                     //If there are no errors signal that the passengers were picked up
                     allWorkAssignments.forEach(workAssignment -> {
@@ -134,6 +135,7 @@ public class ElevatorSubsystem extends Thread {
                         Thread.sleep(PASSENGER_DELAY);
                     } catch (Exception ignored) {}
                     capacity--;
+                    notifyupdateCapacity();
 
                     //Output what happened
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
@@ -398,9 +400,9 @@ public class ElevatorSubsystem extends Thread {
      * Notifies for Capacity Event
      */
     public void notifyupdateCapacity(){
-//        elevatorListeners.forEach(
-//                elevatorListener -> elevatorListener.updateCapacity(this.elevatorId, /*Capacity*/)
-//        );
+        elevatorListeners.forEach(
+                elevatorListener -> elevatorListener.updateCapacity(this.elevatorId, capacity)
+        );
     }
 
     /**
