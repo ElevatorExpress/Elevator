@@ -1,6 +1,7 @@
 package elevator;
 
 import elevator.ElevatorRequestTracker.RequestStatus;
+import gui.ElevatorListener;
 import util.Direction;
 import util.ElevatorLogger;
 import util.ElevatorStateUpdate;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
  * @author Yasir Sheikh
  */
 public class ElevatorSubsystem extends Thread {
+    private final ArrayList<ElevatorListener> elevatorListeners;
     //Elevators start at the bottom floor
     private Integer currentFloor = 1;
     private final ElevatorButtonPanel buttons;
@@ -54,6 +56,7 @@ public class ElevatorSubsystem extends Thread {
         universalDirection = Direction.ANY;
         trackRequest = new ArrayList<>();
         wa = new ArrayList<>();
+        elevatorListeners = new ArrayList<>();
         this.ecs = ecs;
     }
 
@@ -77,6 +80,7 @@ public class ElevatorSubsystem extends Thread {
                         wa.remove(ert.getRequest());
                     }
 
+                    notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
                     //Simulates the doors opening at a floor
                     verifyDoorDelay(errorBit);
 
@@ -101,6 +105,8 @@ public class ElevatorSubsystem extends Thread {
                 else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
                     //Check error bit of the request
                     int errorBit = ert.getRequest().getErrorBit();
+
+                    notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
                     //Simulate dropping passengers off
                     verifyDoorDelay(errorBit);
                     //Output what happened
@@ -122,11 +128,18 @@ public class ElevatorSubsystem extends Thread {
                 }
             }
         }
+        notifyMovingSubscribers(ElevatorListener.Moving.MOVING);
 
         //If the elevator reaches the top floor, swap its direction to down
-        if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP) universalDirection = Direction.DOWN;
+        if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP){
+            universalDirection = Direction.DOWN;
+            notifyDirectionSubscribers();
+        }
         //If the elevator reaches the bottom floor, swap its direction to up
-        else if (currentFloor == 0 && universalDirection == Direction.DOWN) universalDirection = Direction.UP;
+        else if (currentFloor == 0 && universalDirection == Direction.DOWN){
+            universalDirection = Direction.UP;
+            notifyDirectionSubscribers();
+        }
 
         // Delay for travel time between each floor. Catches hard faults
         try {
@@ -143,6 +156,7 @@ public class ElevatorSubsystem extends Thread {
                 //Signal elevator had a fault
                 setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
                 setElevatorInfoSignal(Signal.EMERG);
+                notifyMovingSubscribers(ElevatorListener.Moving.EMERG);
                 ecs.emergencyState(elevatorId, wa);
                 //Clear out the requests of this elevator
                 trackRequest.clear();
@@ -202,6 +216,7 @@ public class ElevatorSubsystem extends Thread {
                 //Decrement floor
                 currentFloor--;
             }
+            notifyFloorSubscribers();
 
         }
         catch (InterruptedException ignored) {}
@@ -300,14 +315,61 @@ public class ElevatorSubsystem extends Thread {
                 setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, wa));
                 //Set elevator state
                 setElevatorInfoSignal(Signal.WORKING);
+                notifyDirectionSubscribers();
                 //Make the elevator move until there are no requests left
                 while (!trackRequest.isEmpty()) {
                     incrementFloor();
                 }
                 //Signal that requests are all complete
+                if (getElevatorInfo().getStateSignal() != Signal.EMERG) {
+                    notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
+                }
                 completeRequestEvent();
             }
         }
     }
 
+    /**
+     * Notifies for Floor Event
+     */
+    public void notifyFloorSubscribers(){
+        elevatorListeners.forEach(
+                elevatorListener -> elevatorListener.updateCurrentFloor(this.elevatorId, this.currentFloor)
+        );
+    }
+
+    /**
+     * Notifies for Moving Event
+     */
+    public void notifyMovingSubscribers(ElevatorListener.Moving moving){
+        elevatorListeners.forEach(
+                elevatorListener -> elevatorListener.updateMovingState(this.elevatorId, moving)
+        );
+    }
+
+    /**
+     * Notifies for Direction Event
+     */
+    public void notifyDirectionSubscribers(){
+        elevatorListeners.forEach(
+                elevatorListener -> elevatorListener.updateDirection(this.elevatorId, this.universalDirection)
+        );
+    }
+
+    /**
+     * Notifies for Capacity Event
+     */
+    public void notifyupdateCapacity(){
+//        elevatorListeners.forEach(
+//                elevatorListener -> elevatorListener.updateCapacity(this.elevatorId, /*Capacity*/)
+//        );
+    }
+
+    /**
+     * Subscribes an elevator listener to this elevator
+     * @param elevatorListener The subscriber to this event
+     */
+    public void subscribe(ElevatorListener elevatorListener) {
+        elevatorListeners.add(elevatorListener);
+    }
 }

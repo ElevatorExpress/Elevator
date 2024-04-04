@@ -1,6 +1,6 @@
 package elevator;
 
-import gui.ECSListener;
+import gui.ElevatorListener;
 import util.ElevatorStateUpdate;
 import util.SubSystemSharedStateInterface;
 import util.WorkAssignment;
@@ -25,7 +25,6 @@ public class ElevatorControlSystem {
     private boolean notified = false;
     //If there is a fault on an elevator
     private boolean emergency;
-    private final ArrayList<ECSListener> ecsListeners;
 
     /**
      * Creates an Elevator Control System
@@ -35,7 +34,6 @@ public class ElevatorControlSystem {
         emergency = false;
         elevatorRequests = new ArrayList<>();
         elevators = Collections.synchronizedList(new ArrayList<>());
-        ecsListeners = new ArrayList<>();
         //Grab state from shared object
         sharedState = (SubSystemSharedStateInterface) Naming.lookup("rmi://localhost/SharedSubSystemState");
         //Create individual elevators
@@ -99,7 +97,6 @@ public class ElevatorControlSystem {
             sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments()));
         }
         //RMI to the scheduler, it will process these requests and elevator information
-        notifyElevatorEvent(stateUpdate);
         return notified = sharedState.ecsUpdate(stateUpdate);
     }
 
@@ -125,7 +122,6 @@ public class ElevatorControlSystem {
     public synchronized void emergencyState(int elevatorId, ArrayList<WorkAssignment> requests) throws RemoteException {
         emergency = true;
         notified = false;
-        notifyElevatorEvent(Map.of(elevatorId, elevators.get(elevatorId).getElevatorInfo()));
         //Remove unserviced requests from the stopped elevator
         elevators.removeIf((elevatorSubsystem -> elevatorSubsystem.getElevatorId() == elevatorId));
         //Remove the stopped elevator from the scheduler
@@ -137,15 +133,8 @@ public class ElevatorControlSystem {
         AssignRequest();
     }
 
-    /**
-     * Updates all elevator event subscribers with an elevator update hashmap
-     */
-    public void notifyElevatorEvent(Map<Integer, ElevatorStateUpdate> updateHashMap) {
-        ecsListeners.forEach(ecsListener -> ecsListener.updateElevators(updateHashMap));
-    }
-
-    public void subscribeElevatorEvent(ECSListener ecsListener){
-        ecsListeners.add(ecsListener);
+    public void subscribeElevatorEvent(ElevatorListener elevatorListener){
+        elevators.forEach(e -> e.subscribe(elevatorListener));
     }
 
 }

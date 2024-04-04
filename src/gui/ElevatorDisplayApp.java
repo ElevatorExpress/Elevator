@@ -7,9 +7,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.StackPane;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -17,21 +16,21 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import util.Direction;
 import util.ElevatorStateUpdate;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
-public class ElevatorDisplayApp extends Application implements ECSListener {
+public class ElevatorDisplayApp extends Application implements ElevatorListener {
 
     private static final String WELCOME = "ELEVATOR MONITOR";
     private ElevatorControlSystem elevatorControlSystem;
     private int elevatorsCount;
-    private HashMap<Integer, Label> currentElevatorFloor;
-    private HashMap<Integer, Label> currentElevatorStatus;
-    private HashMap<Integer, Label> currentElevatorDestination;
-    private HashMap<Integer, Label> currentElevatorDirection;
+    private HashMap<Integer, TextField> currentElevatorFloor;
+    private HashMap<Integer, TextField> currentElevatorMoving;
+    private HashMap<Integer, TextField> currentElevatorCapacity;
+    private HashMap<Integer, TextField> currentElevatorDirection;
     private volatile boolean guiSetUpDone = false;
 
     private void ecsStart() {
@@ -58,64 +57,72 @@ public class ElevatorDisplayApp extends Application implements ECSListener {
 
         tSide.setAlignment(Pos.CENTER);
         tSide.getChildren().add(mainText);
+        tSide.setPrefWidth(300);
 
         GridPane centerGridPane = new GridPane();
         centerGridPane.setPadding(new Insets(10, 10, 10, 10));
         centerGridPane.setVgap(8);
         centerGridPane.setHgap(10);
 
-        Label descriptionLabel;
+        int rowResetPos = 0;
         for (int i = 0; i < elevatorsCount; i++){
-            int rowPos = 0;
+            int rowPos = rowResetPos;
+            int colPos = i % 2;
             // Create Elevator ID Display
-            descriptionLabel = new Label("ElevatorID");
-            GridPane.setConstraints(descriptionLabel, i, rowPos++);
-            centerGridPane.getChildren().add(descriptionLabel);
+            HBox idPane = getGridHBoxPane();
 
-            Label elevatorID = new Label(String.valueOf(i + 1));
-            GridPane.setConstraints(elevatorID, i, rowPos++);
-            centerGridPane.getChildren().add(elevatorID);
+            createAndAddDescriptionLabel(idPane, "ElevatorID - " + (i + 1));
+            GridPane.setConstraints(idPane, colPos, rowPos++);
+            centerGridPane.getChildren().add(idPane);
+
 
             // Create current floor display
-            descriptionLabel = new Label("Current Floor");
-            GridPane.setConstraints(descriptionLabel, i, rowPos++);
-            centerGridPane.getChildren().add(descriptionLabel);
+            HBox floorPane = getGridHBoxPane();
 
-            Label currentFloor = new Label("0");
-            GridPane.setConstraints(currentFloor, i, rowPos++);
-            centerGridPane.getChildren().add(currentFloor);
+            createAndAddDescriptionLabel(floorPane, "Floor");
+            TextField currentFloor = getGridTextField(floorPane, "0");
             currentElevatorFloor.put(i + 1, currentFloor);
 
-            // Create current status display
-            descriptionLabel = new Label("Current Status");
-            GridPane.setConstraints(descriptionLabel, i, rowPos++);
-            centerGridPane.getChildren().add(descriptionLabel);
+            GridPane.setConstraints(floorPane, colPos, rowPos++);
+            centerGridPane.getChildren().add(floorPane);
 
-            Label currentState = new Label("-");
-            GridPane.setConstraints(currentState, i, rowPos++);
-            centerGridPane.getChildren().add(currentState);
-            currentElevatorStatus.put(i + 1, currentState);
+
+            // Create current status display
+            HBox statusPane = getGridHBoxPane();
+
+            createAndAddDescriptionLabel(statusPane, "Status");
+            TextField currentState = getGridTextField(statusPane, "-");
+            currentElevatorMoving.put(i + 1, currentState);
+
+            GridPane.setConstraints(statusPane, colPos, rowPos++);
+            centerGridPane.getChildren().add(statusPane);
+
 
             // Create current destination display
-            descriptionLabel = new Label("Current Destination");
-            GridPane.setConstraints(descriptionLabel, i, rowPos++);
-            centerGridPane.getChildren().add(descriptionLabel);
+            HBox capacityPane = getGridHBoxPane();
 
-            Label currentDestination = new Label("-");
-            GridPane.setConstraints(currentDestination, i, rowPos++);
-            centerGridPane.getChildren().add(currentDestination);
-            currentElevatorDestination.put(i + 1, currentDestination);
+            createAndAddDescriptionLabel(capacityPane, "Capacity");
+            TextField currentCapacity = getGridTextField(capacityPane, "-");
+            currentElevatorCapacity.put(i + 1, currentCapacity);
+
+            GridPane.setConstraints(capacityPane, colPos, rowPos++);
+            centerGridPane.getChildren().add(capacityPane);
+
 
             // Create current direction display
-            descriptionLabel = new Label("Current Direction");
-            GridPane.setConstraints(descriptionLabel, i, rowPos++);
-            centerGridPane.getChildren().add(descriptionLabel);
+            HBox directionPane = getGridHBoxPane();
 
-            Label currentDirection = new Label("-");
-            GridPane.setConstraints(currentDirection, i, rowPos);
-            centerGridPane.getChildren().add(currentDirection);
+            createAndAddDescriptionLabel(directionPane, "Direction");
+            TextField currentDirection = getGridTextField(directionPane, "-");
             currentElevatorDirection.put(i + 1, currentDirection);
 
+            GridPane.setConstraints(directionPane, colPos, rowPos);
+            centerGridPane.getChildren().add(directionPane);
+
+            // Calculate Row Pos Reset
+            if (i % 2 != 0) {
+                rowResetPos += 5;
+            }
         }
         centerGridPane.setAlignment(Pos.CENTER);
 
@@ -136,42 +143,90 @@ public class ElevatorDisplayApp extends Application implements ECSListener {
         guiSetUpDone = true;
     }
 
+    private TextField getGridTextField(HBox pane, String defaultText) {
+        TextField textField = new TextField(defaultText);
+        textField.setEditable(false);
+        textField.setStyle("-fx-border-color: #222222; border-color: #222222; -fx-background-color: #1A1A1A; background-color: #1A1A1A; -fx-text-fill: #479f76;");
+        textField.selectedTextProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.isEmpty()) textField.deselect();
+        });
+        pane.getChildren().add(textField);
+        return textField;
+    }
+
+    private HBox getGridHBoxPane() {
+        HBox pane = new HBox(3);
+        pane.setAlignment(Pos.CENTER_RIGHT);
+        return pane;
+    }
+
+    private void createAndAddDescriptionLabel(Pane labelPane, String description) {
+        Label descriptionLabel;
+        descriptionLabel = new Label(description);
+        labelPane.getChildren().add(descriptionLabel);
+    }
+
     private void onCloseAction(WindowEvent windowEvent) {
 
     }
 
     /**
-     * Event is launched when an elevator is potentially updated
+     * Ran when the current floor is updated. Provides current floor.
      *
-     * @param updateHashMap The updated elevator states associated with their IDs'
+     * @param id    The elevator ID
+     * @param floor The elevator's current floor
      */
     @Override
-    public void updateElevators(Map<Integer, ElevatorStateUpdate> updateHashMap) {
-        Platform.runLater(() -> {
-            for (int i = 1; i < elevatorsCount + 1; i++){
-                ElevatorStateUpdate state = updateHashMap.get(i);
-                if (state != null && guiSetUpDone) {
-                    currentElevatorFloor.get(i).setText(String.valueOf(state.getFloor()));
-                    currentElevatorDirection.get(i).setText(state.getDirection().toString());
-                    currentElevatorDestination.get(i).setText(String.valueOf(state.getDestinationFloor()));
-                    if (state.getStateSignal() != null)
-                        currentElevatorStatus.get(i).setText(String.valueOf(state.getStateSignal()));
-                }
-            }
-        });
+    public void updateCurrentFloor(int id, int floor) {
+        if (guiSetUpDone){
+            Platform.runLater(() -> currentElevatorFloor.get(id).setText(String.valueOf(floor)));
+        }
     }
 
-    /*
-    TODO:
-     - REPLACE current state with internal elevator State, redo ElevatorStateUpdate to add this.
-     - Make content reactive and look better dont use labels only
+    /**
+     * Ran when the moving state is updated. Provides moving state
+     *
+     * @param id     The elevator ID
+     * @param moving The elevator's current moving state
      */
+    @Override
+    public void updateMovingState(int id, Moving moving) {
+        if (guiSetUpDone){
+            Platform.runLater(() -> currentElevatorMoving.get(id).setText(moving.name()));
+        }
+    }
+
+    /**
+     * Ran when the direction is updated. Provides the direction
+     *
+     * @param id        The elevator ID
+     * @param direction The elevator's direction
+     */
+    @Override
+    public void updateDirection(int id, Direction direction) {
+        if (guiSetUpDone){
+            Platform.runLater(() -> currentElevatorDirection.get(id).setText(direction.name()));
+        }
+    }
+
+    /**
+     * Ran when the capacity is updated. Provides the capacity
+     *
+     * @param id       The elevator ID
+     * @param capacity The elevator's current capacity
+     */
+    @Override
+    public void updateCapacity(int id, int capacity) {
+        if (guiSetUpDone){
+            Platform.runLater(() -> currentElevatorCapacity.get(id).setText(String.valueOf(capacity)));
+        }
+    }
 
     @Override
     public void start(Stage stage) throws Exception {
         currentElevatorFloor = new HashMap<>();
-        currentElevatorStatus = new HashMap<>();
-        currentElevatorDestination = new HashMap<>();
+        currentElevatorMoving = new HashMap<>();
+        currentElevatorCapacity = new HashMap<>();
         currentElevatorDirection = new HashMap<>();
 
         elevatorsCount = ElevatorStateUpdate.getElevatorCount();
