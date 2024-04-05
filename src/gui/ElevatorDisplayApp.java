@@ -102,7 +102,7 @@ public class ElevatorDisplayApp extends Application implements ElevatorListener 
             HBox capacityPane = getGridHBoxPane();
 
             createAndAddDescriptionLabel(capacityPane, "Capacity");
-            TextField currentCapacity = getGridTextField(capacityPane, "-");
+            TextField currentCapacity = getGridTextField(capacityPane, "0");
             currentElevatorCapacity.put(i + 1, currentCapacity);
 
             GridPane.setConstraints(capacityPane, colPos, rowPos++);

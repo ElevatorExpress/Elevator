@@ -32,7 +32,7 @@ public interface ElevatorListener {
     void updateCapacity(int id, int capacity);
 
     enum Moving {
-        MOVING, STOPPED, EMERG
+        MOVING, STOPPED, EMERG, RETRY_DOOR
     }
 
 }

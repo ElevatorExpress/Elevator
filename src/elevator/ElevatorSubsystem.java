@@ -103,7 +103,7 @@ public class ElevatorSubsystem extends Thread {
                         Thread.sleep(PASSENGER_DELAY);
                     } catch (Exception ignored) {}
                     capacity++;
-                    notifyupdateCapacity();
+                    notifyUpdateCapacity();
 
                     //If there are no errors signal that the passengers were picked up
                     allWorkAssignments.forEach(workAssignment -> {
@@ -142,7 +142,7 @@ public class ElevatorSubsystem extends Thread {
                         Thread.sleep(PASSENGER_DELAY);
                     } catch (Exception ignored) {}
                     capacity--;
-                    notifyupdateCapacity();
+                    notifyUpdateCapacity();
 
                     //Output what happened
                     logger.info("Dropping passengers to floor " + ert.getDestFloor() + " from floor: " + ert.getSourceFloor());
@@ -226,6 +226,7 @@ public class ElevatorSubsystem extends Thread {
                 if (doorDelayThread.isAlive()) {
                     //Output what happened
                     logger.info("SOFT FAULT has occurred, retrying doors");
+                    notifyMovingSubscribers(ElevatorListener.Moving.RETRY_DOOR);
                     //The doors will close on the next try
                     if (errorBit == 1) errorBit = 0;
                 }
@@ -406,7 +407,7 @@ public class ElevatorSubsystem extends Thread {
     /**
      * Notifies for Capacity Event
      */
-    public void notifyupdateCapacity(){
+    public void notifyUpdateCapacity(){
         elevatorListeners.forEach(
                 elevatorListener -> elevatorListener.updateCapacity(this.elevatorId, capacity)
         );

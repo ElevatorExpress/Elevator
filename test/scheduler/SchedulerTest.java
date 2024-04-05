@@ -6,29 +6,27 @@ import floor.FloorInfoReader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import scheduler.*;
 import scheduler.strategies.AllocationStrategy;
 import scheduler.strategies.LoadBalancedStrategy;
-import util.*;
+import util.Direction;
+import util.MessageBuffer;
 import util.Messages.MessageTypes;
 import util.Messages.SerializableMessage;
 import util.Messages.Signal;
+import util.SubSystemSharedState;
+import util.WorkAssignment;
 
 import java.io.IOException;
-import java.io.Serial;
 import java.lang.reflect.Field;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
 import java.util.ArrayList;
 import java.util.UUID;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
 
 class SchedulerTest {
     private Scheduler scheduler;
@@ -61,7 +59,7 @@ class SchedulerTest {
         ElevatorSubsystem ess = new ElevatorSubsystem(1, ecs);
         ess.start();
         boolean updated = scheduler.handleECSUpdate();
-        assertFalse(updated);
+        Assertions.assertFalse(updated);
     }
 
     @Test
@@ -83,8 +81,8 @@ class SchedulerTest {
         boolean updated = scheduler.handleECSUpdate();
 
         assertTrue(updated);
-        assertTrue(scheduler.getSharedState().getWorkAssignments().get(1).size() == 2);
-        assertTrue(scheduler.getSharedState().getElevatorStates().size() == 1);
+        assertEquals(2, scheduler.getSharedState().getWorkAssignments().get(1).size());
+        assertEquals(1, scheduler.getSharedState().getElevatorStates().size());
 
 
 
