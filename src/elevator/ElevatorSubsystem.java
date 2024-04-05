@@ -75,6 +75,7 @@ public class ElevatorSubsystem extends Thread {
         boolean majorDelay = false;
         boolean stateUpdated = false;
         boolean doorsOpen = false;
+        int error = 0;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
             //If the current request matches the direction of the elevator
@@ -87,6 +88,8 @@ public class ElevatorSubsystem extends Thread {
                         majorDelay = true;
                         //Remove the flagged request from the list
                         allWorkAssignments.remove(ert.getRequest());
+                    } else if (errorBit == 1 && doorsOpen) {
+                        error = errorBit;
                     }
 
                     notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
@@ -125,6 +128,10 @@ public class ElevatorSubsystem extends Thread {
                     int errorBit = ert.getRequest().getErrorBit();
 
                     notifyMovingSubscribers(ElevatorListener.Moving.STOPPED);
+                    if (errorBit == 1 && doorsOpen) {
+                        error = errorBit;
+                    }
+
                     //Simulate opening the doors
                     if(!doorsOpen) {
                         verifyDoorDelay(errorBit);
@@ -158,7 +165,7 @@ public class ElevatorSubsystem extends Thread {
         }
         //Simulates the doors opening at a floor
         if(doorsOpen) {
-            verifyDoorDelay(0);
+            verifyDoorDelay(error);
         }
         notifyMovingSubscribers(ElevatorListener.Moving.MOVING);
 
