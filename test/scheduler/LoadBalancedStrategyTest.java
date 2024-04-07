@@ -39,7 +39,7 @@ public class LoadBalancedStrategyTest {
     }
 
     @Test
-    void TestAllocate() throws UnknownHostException {
+    void TestAllocate() throws UnknownHostException, RemoteException {
         Assertions.assertEquals(0, sharedState.getWorkAssignments().get(1).size());
         lbs.allocate(new WorkAssignment(
                 1,
@@ -56,7 +56,7 @@ public class LoadBalancedStrategyTest {
     }
 
     @Test
-    void TestSmallestAssignment() throws UnknownHostException {
+    void TestSmallestAssignment() throws UnknownHostException, RemoteException {
         lbs.allocate(new WorkAssignment(
                 1,
                 2,

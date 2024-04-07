@@ -13,6 +13,9 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     private HashMap <Integer, ElevatorStateUpdate> elevatorStates;
     private HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments = new HashMap<>();
     private ArrayList<WorkAssignment> newWorkAssignmentBuffer = new ArrayList<>();
+    private HashMap<Integer, ArrayList<Integer>> elevatorStopQueues = new HashMap<>();
+    private HashMap<Integer, ArrayList<Integer>> elevatorUpStopQueues = new HashMap<>();
+    private HashMap<Integer, ArrayList<Integer>> elevatorDownStopQueues = new HashMap<>();
     Scheduler scheduler;
 
     /**
@@ -31,9 +34,10 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
      * @param workRequests To be re-allocated
      * @return false if succeeded
      */
-    public boolean ecsEmergency(ArrayList<WorkAssignment> workRequests){
+    public boolean ecsEmergency(ArrayList<WorkAssignment> workRequests) throws RemoteException {
         return scheduler.handleECSEmergency(workRequests);
     }
+
 
     /**
      * Sets the scheduler
@@ -45,6 +49,25 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     public SubSystemSharedState() throws RemoteException {
         super();
         elevatorStates = new HashMap<>();
+    }
+
+    public void setElevatorStopQueue(int elevatorId, ArrayList<Integer> stopQueue) throws RemoteException {
+        elevatorStopQueues.put(elevatorId, stopQueue);
+    }
+    public void setAllElevatorStopQueues(HashMap<Integer, ArrayList<Integer>> stopQueues) throws RemoteException{
+        elevatorStopQueues = stopQueues;
+    }
+    public ArrayList<Integer> getElevatorStopQueue(int elevatorId) {
+        return elevatorStopQueues.get(elevatorId);
+    }
+
+//    @Override
+    public void setElevatorStopQueues(int elevatorId, ArrayList<Integer> stopQueue) throws RemoteException {
+        elevatorStopQueues.put(elevatorId, stopQueue);
+    }
+
+    public HashMap<Integer, ArrayList<Integer>> getElevatorStopQueues() {
+        return elevatorStopQueues;
     }
 
     /**
@@ -88,6 +111,26 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
      */
     public HashMap<Integer, ElevatorStateUpdate> getElevatorStates() {
         return elevatorStates;
+    }
+
+    @Override
+    public void setElevatorUpStopQueue(int retId, ArrayList<Integer> upfloorStops) {
+        elevatorUpStopQueues.put(retId, upfloorStops);
+    }
+
+    @Override
+    public void setElevatorDownStopQueue(int retId, ArrayList<Integer> downFloorStops) {
+        elevatorDownStopQueues.put(retId, downFloorStops);
+    }
+
+    @Override
+    public ArrayList<Integer> getElevatorUpStopQueue(int elevatorId) throws RemoteException {
+        return elevatorUpStopQueues.get(elevatorId);
+    }
+
+    @Override
+    public ArrayList<Integer> getElevatorDownStopQueue(int elevatorId) throws RemoteException {
+        return elevatorDownStopQueues.get(elevatorId);
     }
 
     /**
@@ -224,5 +267,6 @@ public class SubSystemSharedState extends UnicastRemoteObject implements SubSyst
     public HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> getAllWorkAssignments() {
         return workAssignments;
     }
+
 
 }

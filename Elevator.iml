@@ -36,6 +36,8 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="mockito.all" level="project" />
+    <orderEntry type="library" name="openjfx.javafx.base" level="project" />
+    <orderEntry type="library" name="openjfx.javafx.controls" level="project" />
     <orderEntry type="library" name="lib" level="project" />
   </component>
 </module>

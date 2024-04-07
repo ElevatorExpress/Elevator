@@ -101,6 +101,7 @@ public class Scheduler {
                     //Update the shared object with new work assignments
                     logger.info("Received Request: " + workAssignment);
                     allocationStrategy.allocate(workAssignment);
+                    System.out.println("SCHEDULER : " + workAssignment);
                 }
                 //Signal that the Scheduler is done reading
                 doneServing();
@@ -168,8 +169,9 @@ public class Scheduler {
      * @param workRequests The work requests to reallocate
      * @return False if succeeded
      */
-    public boolean handleECSEmergency(ArrayList<WorkAssignment> workRequests) {
+    public boolean handleECSEmergency(ArrayList<WorkAssignment> workRequests) throws RemoteException {
         for (WorkAssignment workRequest : workRequests) {
+//            System.out.println("SCHEDULER : " + workRequest);
             allocationStrategy.allocate(workRequest);
         }
         return false;

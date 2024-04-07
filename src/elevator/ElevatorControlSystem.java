@@ -1,9 +1,7 @@
 package elevator;
 
 import gui.ElevatorListener;
-import util.ElevatorStateUpdate;
-import util.SubSystemSharedStateInterface;
-import util.WorkAssignment;
+import util.*;
 
 import java.io.IOException;
 import java.rmi.Naming;
@@ -11,6 +9,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+
 
 /**
  * Class for managing elevators
@@ -58,6 +57,9 @@ public class ElevatorControlSystem {
             sharedState.setWorkAssignmentQueue(i, new ConcurrentLinkedDeque<>());
             //Add elevator state to update object
             stateUpdate.put(i , elevators.get(i - 1).getElevatorInfo());
+            sharedState.setElevatorStopQueue(i, new ArrayList<>());
+            sharedState.setElevatorUpStopQueue(i, new ArrayList<>());
+            sharedState.setElevatorDownStopQueue(i, new ArrayList<>());
             sharedState.addElevatorState(i, elevators.get(i - 1).getElevatorInfo());
         }
         //Update shared object
@@ -67,6 +69,7 @@ public class ElevatorControlSystem {
     /**
      * Assigns Requests to elevators
      */
+    //ToDo Assign floor queue to elevator, create method on ES to add queue to ES.
     private void AssignRequest() throws RemoteException {
         //Each elevator looks into the request queue
         for (ElevatorSubsystem elevator : elevators) {
@@ -74,6 +77,27 @@ public class ElevatorControlSystem {
             for (WorkAssignment newRequest : sharedState.getWorkAssignments().get(elevator.getElevatorId())) {
                 //If the request does not already exist
                 if (!elevatorRequests.contains(newRequest)) {
+                    ArrayList<Integer> floorStopQueue = sharedState.getElevatorStopQueue(elevator.getElevatorId());
+                    ArrayList<Integer> upFloorStopQueue = sharedState.getElevatorUpStopQueue(elevator.getElevatorId());
+                    ArrayList<Integer> downFloorStopQueue = sharedState.getElevatorDownStopQueue(elevator.getElevatorId());
+
+
+                    elevator.setFloorStopQueue(floorStopQueue);
+                    elevator.setUpFloorStopQueue(upFloorStopQueue);
+                    elevator.setDownFloorStopQueue(downFloorStopQueue);
+
+
+                    System.out.println("3 FLOOR UP Q: for: "+ upFloorStopQueue);
+                    System.out.println("3 FLOOR DOWN Q: for: "+ downFloorStopQueue);
+//                    if(newRequest.getDirection() == Direction.UP){
+////                        elevator.addUpFloorStop(newRequest.getDestinationFloor());
+//                        ArrayList<Integer> upFloorStopQueue = sharedState.getElevatorUpStopQueue(elevator.getElevatorId());
+//                        elevator.setUpFloorStopQueue(upFloorStopQueue);
+//                    } else {
+//                        ArrayList<Integer> downFloorStopQueue = sharedState.getElevatorDownStopQueue(elevator.getElevatorId());
+//                        elevator.setDownFloorStopQueue(downFloorStopQueue);
+//                    }
+
                     //Give the request to the elevator
                     elevator.addTrackedRequest(newRequest);
                     elevatorRequests.add(newRequest);
@@ -94,6 +118,9 @@ public class ElevatorControlSystem {
             //Fill the map with elevator id/state and request list pairs
             stateUpdate.put(elevator.getElevatorId(), elevatorStateUpdate);
             sharedState.addElevatorState(elevator.getElevatorId(),elevatorStateUpdate);
+            sharedState.setElevatorStopQueue(elevator.getElevatorId(), elevator.getFloorStopQueue());
+            sharedState.setElevatorUpStopQueue(elevator.getElevatorId(), elevator.getFloorStopQueueUp());
+            sharedState.setElevatorDownStopQueue(elevator.getElevatorId(), elevator.getFloorStopQueueDown());
             sharedState.setWorkAssignmentQueue(elevator.getElevatorId() , new ConcurrentLinkedDeque<>(elevatorStateUpdate.getWorkAssignments()));
         }
         //RMI to the scheduler, it will process these requests and elevator information

@@ -3,6 +3,8 @@ package scheduler.strategies;
 import util.SubSystemSharedState;
 import util.WorkAssignment;
 
+import java.rmi.RemoteException;
+
 /**
  * Class for allocating requests
  */
@@ -21,5 +23,5 @@ public abstract class AllocationStrategy {
      * Allocates work assignments
      * @param workAssignment The wor assignment to allocate
      */
-    public abstract void allocate(WorkAssignment workAssignment);
+    public abstract void allocate(WorkAssignment workAssignment) throws RemoteException;
 }

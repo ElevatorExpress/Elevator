@@ -10,6 +10,9 @@ import java.util.Scanner;
 
 public class ElevatorStateUpdate implements Serializable {
     private final int elevatorId;
+    private ArrayList<Integer> floorStopQueue = new ArrayList<>();
+    private ArrayList<Integer> upFloorStopQueue = new ArrayList<>();
+    private ArrayList<Integer> downFloorStopQueue = new ArrayList<>();
     private final int curFloor;
     private int destinationFloor;
     private Direction direction;
@@ -31,6 +34,37 @@ public class ElevatorStateUpdate implements Serializable {
         this.workAssignments = workAssignments;
         this.isFull = isFull;
     }
+    public void setFloorUpStopQueue(ArrayList<Integer> upFloorStopQueue) {
+        this.upFloorStopQueue = upFloorStopQueue;
+    }
+    public void setFloorDownStopQueue(ArrayList<Integer> downFloorStopQueue) {
+        this.downFloorStopQueue = downFloorStopQueue;
+    }
+    public ArrayList<Integer> getUpFloorStopQueue() {
+        return upFloorStopQueue;
+    }
+    public ArrayList<Integer> getDownFloorStopQueue() {
+        return downFloorStopQueue;
+    }
+
+    public ArrayList<Integer> getFloorStopQueue() {
+        return floorStopQueue;
+    }
+    public void setFloorStopQueue(ArrayList<Integer> floorStopQueue) {
+        this.floorStopQueue = floorStopQueue;
+    }
+
+    public void removeFloorStop(int floor) {
+        floorStopQueue.remove(floor);
+    }
+    public void addFloorStop(int floor) {
+        floorStopQueue.add(floor);
+    }
+
+    public void clearFloorStopQueue() {
+        floorStopQueue.clear();
+    }
+
 
     public static int getElevatorCount() throws FileNotFoundException {
         File elevatorInfo = new File("./elevators.info");
@@ -114,5 +148,9 @@ public class ElevatorStateUpdate implements Serializable {
      */
     public Direction getDirection() {
         return direction;
+    }
+
+    public boolean isFull() {
+        return isFull;
     }
 }

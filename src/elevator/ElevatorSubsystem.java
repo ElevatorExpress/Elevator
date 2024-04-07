@@ -13,6 +13,7 @@ import util.states.ElevatorWorking;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Class ElevatorSubsystem creates a subsystem thread for an elevator. The class will process requests sent by the scheduler
@@ -23,6 +24,11 @@ import java.util.ArrayList;
  */
 public class ElevatorSubsystem extends Thread {
     private final ArrayList<ElevatorListener> elevatorListeners;
+
+    private ArrayList<Integer> floorStopQueue;
+    private ArrayList<Integer> floorStopQueueUp;
+    private ArrayList<Integer> floorStopQueueDown;
+
     //Elevators start at the bottom floor
     private Integer currentFloor = 1;
     private final ElevatorButtonPanel buttons;
@@ -41,12 +47,13 @@ public class ElevatorSubsystem extends Thread {
     private int capacity = 0;
     private final ElevatorControlSystem ecs;
     private boolean stopBit = false;
-    private final int MAX_PEOPLE = 5;
-    private final int FLOOR_TRAVEL_TIME = 10000;
-    private final int FLOOR_TRAVEL_FAULT_TIME = 20000;
-    private final int OPEN_CLOSE_DOORS = 3000;
-    private final int OPEN_CLOSE_DOORS_FAULT = 5000;
-    private final int PASSENGER_DELAY = 5000;
+    private final int MAX_PEOPLE = 101;
+    private final int FLOOR_TRAVEL_TIME = 1000;
+    private final int FLOOR_TRAVEL_FAULT_TIME = 2000;
+    private final int OPEN_CLOSE_DOORS = 300;
+    private final int OPEN_CLOSE_DOORS_FAULT = 500;
+    private final int PASSENGER_DELAY = 500;
+    private int dropOffsRemaining = 0;
 
 
 
@@ -65,6 +72,9 @@ public class ElevatorSubsystem extends Thread {
         trackRequest = new ArrayList<>();
         allWorkAssignments = new ArrayList<>();
         elevatorListeners = new ArrayList<>();
+        floorStopQueue = new ArrayList<>();
+        floorStopQueueUp = new ArrayList<>();
+        floorStopQueueDown = new ArrayList<>();
         this.ecs = ecs;
     }
 
@@ -77,11 +87,90 @@ public class ElevatorSubsystem extends Thread {
         boolean doorsOpen = false;
         int error = 0;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
+
+//        int nextStop = -1;
+//        if (universalDirection == Direction.UP && !floorStopQueueUp.isEmpty()){
+//            nextStop = floorStopQueueUp.get(0);
+//        }
+//        else if (universalDirection == Direction.DOWN && !floorStopQueueDown.isEmpty()) {
+//            nextStop = floorStopQueueDown.get(0);
+//        }else{
+//            System.out.println("OUT OF REQS");
+////            universalDirection = universalDirection == Direction.UP ? Direction.DOWN : Direction.UP;
+//        }
+
+
+
+        logger.info("FLOOR UP Q: for: "+ elevatorId + floorStopQueueUp);
+        logger.info("FLOOR DOWN Q: for: "+ elevatorId + floorStopQueueDown);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
+
             //If the current request matches the direction of the elevator
-            if (!isFull() && ert.getDirection() == universalDirection) {
+            if(!floorStopQueue.contains(ert.getDestFloor())){
+                System.err.println("\n\nFLOORSTOPQ DOES NOT CONTAIN DEST FLOOR\n\n");
+            }
+            int nextStop = -1;
+            if (universalDirection == Direction.UP && !floorStopQueueUp.isEmpty()){
+                nextStop = floorStopQueueUp.get(0);
+                notifyDirectionSubscribers();
+            }
+            else if (universalDirection == Direction.DOWN && !floorStopQueueDown.isEmpty()) {
+                nextStop = floorStopQueueDown.get(0);
+                notifyDirectionSubscribers();
+            }
+            else if (universalDirection==Direction.UP && !floorStopQueueDown.isEmpty()){
+                nextStop = floorStopQueueDown.get(0);
+                    universalDirection = Direction.DOWN;
+                notifyDirectionSubscribers();
+            }else if (universalDirection==Direction.DOWN && !floorStopQueueUp.isEmpty()) {
+                nextStop = floorStopQueueUp.get(0);
+
+                    universalDirection = Direction.UP;
+                notifyDirectionSubscribers();
+            }else{
+                universalDirection = Direction.ANY;
+                notifyDirectionSubscribers();
+                //ToDo Set to idle
+            }
+
+            if (universalDirection == Direction.UP && nextStop < currentFloor) {
+                universalDirection = Direction.DOWN;
+                floorStopQueueUp.remove(0);
+                floorStopQueueDown.add(0,nextStop);
+                notifyDirectionSubscribers();
+            } else if (universalDirection == Direction.DOWN && nextStop > currentFloor) {
+                universalDirection = Direction.UP;
+                floorStopQueueDown.remove(0);
+                floorStopQueueUp.add(0,nextStop);
+                notifyDirectionSubscribers();
+            }
+
+
+//            if(dropOffsRemaining == 0){
+//                //Check closest floor in either direction
+//                int nextUp = MAX_LEVEL;
+//                int nextDown = 0;
+//                if(!floorStopQueueUp.isEmpty()){
+//                    nextUp = floorStopQueueUp.get(0);
+//                }
+//                if(!floorStopQueueDown.isEmpty()){
+//                    nextDown = floorStopQueueDown.get(0);
+//                }
+//                if(universalDirection == Direction.UP && Math.abs(nextUp - currentFloor) > (Math.abs(nextDown - currentFloor) + 1) ) {
+//                    universalDirection = Direction.DOWN;
+//                    notifyDirectionSubscribers();
+//                }else if (universalDirection == Direction.DOWN && Math.abs(nextDown - currentFloor) > (Math.abs(nextUp - currentFloor) + 1) ) {
+//                    universalDirection = Direction.UP;
+//                    notifyDirectionSubscribers();
+//                }
+//            }
+
+            logger.info("CURRENT FLOOR: "+ currentFloor + " DIRECTION: "+ universalDirection + " NEXT STOP " + nextStop);
+            if (!isFull() && currentFloor.equals(nextStop)) {
+
+                System.out.println("\n\n ARRIVED AT NEXT STOP! \n\n : " +nextStop);
                 //If the elevator is at the floor it is expecting to pick up passengers
-                if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
+                if (Objects.equals(nextStop, ert.getSourceFloor()) && ert.getStatus() == RequestStatus.PICKING) {
                     int errorBit = ert.getRequest().getErrorBit();
                     //If an error was injected
                     if (errorBit == 2) {
@@ -105,25 +194,49 @@ public class ElevatorSubsystem extends Thread {
                     capacity++;
                     notifyUpdateCapacity();
 
+
                     //If there are no errors signal that the passengers were picked up
                     allWorkAssignments.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
+                            dropOffsRemaining ++;
                             workAssignment.setPickupComplete();
                             workAssignment.setSignal(Signal.WORKING);
                         }
                     });
+//                    floorStopQueue.remove(0);
+                    if (universalDirection == Direction.UP){
+                        floorStopQueueUp.remove(0);
+                    }else{
+                        floorStopQueueDown.remove(0);
+                    }
+
+                    logger.info("2 CURRENT FLOOR: "+ currentFloor + " DIRECTION: "+ universalDirection + " NEXT STOP " + nextStop);
+
+                    logger.info("2 FLOOR UP Q: for: "+ elevatorId + floorStopQueueUp);
+                    logger.info("2 FLOOR DOWN Q: for: "+ elevatorId + floorStopQueueDown);
+//                    allWorkAssignments.forEach(workAssignment -> {
+//                        if (workAssignment.getServiceFloor() == currentFloor) {
+//                            workAssignment.setPickupComplete();
+//                            workAssignment.setSignal(Signal.WORKING);
+//                        }
+//                    });
 
                     //Send state update
-                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
+                    ElevatorStateUpdate esu = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull());
+                    esu.setFloorUpStopQueue(floorStopQueueUp);
+                    esu.setFloorDownStopQueue(floorStopQueueDown);
+//                    esu.setFloorStopQueue(floorStopQueue);
+                    setElevatorInfo(esu);
                     setElevatorInfoSignal(Signal.WORKING);
                     //Output what happened
                     logger.info("Picking up passengers from: " + ert.getSourceFloor() + ". Destination: " + ert.getDestFloor());
+//                    logger.info("FLOOR Q: for: "+ elevatorId + floorStopQueue);
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
                     stateUpdated = true;
                 }
                 //If the elevator is at the floor it is expecting to drop off passengers
-                else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING) {
+                else if (ert.getDestFloor() == currentFloor && ert.getStatus() == RequestStatus.DROPPING && ert.getDestFloor() == nextStop) {
                     //Check error bit of the request
                     int errorBit = ert.getRequest().getErrorBit();
 
@@ -150,12 +263,21 @@ public class ElevatorSubsystem extends Thread {
                     ert.setStatus(RequestStatus.DONE);
                     allWorkAssignments.forEach(workAssignment -> {
                         if (ert.getRequest() == workAssignment) {
+                            dropOffsRemaining --;
                             workAssignment.setDropoffComplete();
                             workAssignment.setSignal(Signal.DONE);
                         }
                     });
+                    floorStopQueue.remove(0);
+                    if (universalDirection == Direction.UP){
+                        floorStopQueueUp.remove(0);
+                    }else{
+                        floorStopQueueDown.remove(0);
+                    }
                     //Signal that the elevator is done
-                    setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
+                    ElevatorStateUpdate esu = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull());
+                    esu.setFloorStopQueue(floorStopQueue);
+                    setElevatorInfo(esu);
                     setElevatorInfoSignal(Signal.DONE);
                     //Remove the completed request
                     trackRequest.remove(ert);
@@ -169,16 +291,58 @@ public class ElevatorSubsystem extends Thread {
         }
         notifyMovingSubscribers(ElevatorListener.Moving.MOVING);
 
+        //ToDo Switch Direction logic here.
         //If the elevator reaches the top floor, swap its direction to down
-        if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP){
-            universalDirection = Direction.DOWN;
-            notifyDirectionSubscribers();
-        }
-        //If the elevator reaches the bottom floor, swap its direction to up
-        else if (currentFloor == 0 && universalDirection == Direction.DOWN){
+//        if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP){
+//            universalDirection = Direction.DOWN;
+//            notifyDirectionSubscribers();
+//        }
+//        //If the elevator reaches the bottom floor, swap its direction to up
+//        else if (currentFloor == 0 && universalDirection == Direction.DOWN){
+//            universalDirection = Direction.UP;
+//            notifyDirectionSubscribers();
+//        }
+
+
+
+        if(currentFloor <= 1){
             universalDirection = Direction.UP;
             notifyDirectionSubscribers();
         }
+        if(currentFloor >= MAX_LEVEL){
+            universalDirection = Direction.DOWN;
+            notifyDirectionSubscribers();
+        }
+
+//        if (universalDirection == Direction.UP){
+//            //if max level reached, switch direction
+//            if (currentFloor == MAX_LEVEL){
+//                universalDirection = Direction.DOWN;
+//                notifyDirectionSubscribers();
+//            }
+//            else if (floorStopQueue.isEmpty()){
+////                universalDirection = Direction.DOWN;
+////                notifyDirectionSubscribers();
+//
+//            } else if (floorStopQueue.get(0) < currentFloor){
+//                universalDirection = Direction.DOWN;
+//                notifyDirectionSubscribers();
+//            }
+//        }
+//        if (universalDirection == Direction.DOWN){
+//            //if max level reached, switch direction
+//            if (currentFloor == 0){
+//                universalDirection = Direction.UP;
+//                notifyDirectionSubscribers();
+//            }
+//            else if (floorStopQueue.isEmpty()){
+////                universalDirection = Direction.UP;
+////                notifyDirectionSubscribers();
+//            } else if (floorStopQueue.get(0) > currentFloor){
+//                universalDirection = Direction.UP;
+//                notifyDirectionSubscribers();
+//            }
+//        }
 
         // Delay for travel time between each floor. Catches hard faults
         try {
@@ -199,6 +363,7 @@ public class ElevatorSubsystem extends Thread {
                 ecs.emergencyState(elevatorId, allWorkAssignments);
                 //Clear out the requests of this elevator
                 trackRequest.clear();
+                floorStopQueue.clear();
             } else if (!stateUpdated) {
                 setElevatorInfo(new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull()));
                 setElevatorInfoSignal(getElevatorInfo().getStateSignal());
@@ -386,6 +551,18 @@ public class ElevatorSubsystem extends Thread {
         );
     }
 
+    public void setFloorStopQueue (ArrayList<Integer> floorStopQueue) {
+        this.floorStopQueue = floorStopQueue;
+    }
+    public ArrayList<Integer> getFloorStopQueue() {
+        return floorStopQueue;
+    }
+    public ArrayList<Integer> getFloorStopQueueUp() {
+        return floorStopQueueUp;
+    }
+    public ArrayList<Integer> getFloorStopQueueDown() {
+        return floorStopQueueDown;
+    }
     /**
      * Notifies for Moving Event
      */
@@ -419,5 +596,13 @@ public class ElevatorSubsystem extends Thread {
      */
     public void subscribe(ElevatorListener elevatorListener) {
         elevatorListeners.add(elevatorListener);
+    }
+
+    public void setUpFloorStopQueue(ArrayList<Integer> upFloorStopQueue) {
+        floorStopQueueUp = upFloorStopQueue;
+    }
+
+    public void setDownFloorStopQueue(ArrayList<Integer> downFloorStopQueue) {
+        floorStopQueueDown = downFloorStopQueue;
     }
 }
