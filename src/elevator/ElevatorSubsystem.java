@@ -133,7 +133,6 @@ public class ElevatorSubsystem extends Thread {
             logger.info("CURRENT FLOOR: "+ currentFloor + " DIRECTION: "+ universalDirection + " NEXT STOP " + nextStop);
             if (!isFull() && currentFloor.equals(nextStop)) {
 
-                System.out.println("\n\n ARRIVED AT NEXT STOP! \n\n : " +nextStop);
                 //If the elevator is at the floor it is expecting to pick up passengers
                 if (Objects.equals(nextStop, ert.getSourceFloor()) && ert.getStatus() == RequestStatus.PICKING) {
                     int errorBit = ert.getRequest().getErrorBit();
@@ -185,12 +184,10 @@ public class ElevatorSubsystem extends Thread {
                     ElevatorStateUpdate esu = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull());
                     esu.setFloorUpStopQueue(floorStopQueueUp);
                     esu.setFloorDownStopQueue(floorStopQueueDown);
-//                    esu.setFloorStopQueue(floorStopQueue);
                     setElevatorInfo(esu);
                     setElevatorInfoSignal(Signal.WORKING);
                     //Output what happened
                     logger.info("Picking up passengers from: " + ert.getSourceFloor() + ". Destination: " + ert.getDestFloor());
-//                    logger.info("FLOOR Q: for: "+ elevatorId + floorStopQueue);
                     ert.setStatus(RequestStatus.DROPPING);
                     buttons.turnOnButton(ert.getDestFloor());
                     stateUpdated = true;
