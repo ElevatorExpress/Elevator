@@ -88,27 +88,9 @@ public class ElevatorSubsystem extends Thread {
         int error = 0;
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
 
-//        int nextStop = -1;
-//        if (universalDirection == Direction.UP && !floorStopQueueUp.isEmpty()){
-//            nextStop = floorStopQueueUp.get(0);
-//        }
-//        else if (universalDirection == Direction.DOWN && !floorStopQueueDown.isEmpty()) {
-//            nextStop = floorStopQueueDown.get(0);
-//        }else{
-//            System.out.println("OUT OF REQS");
-////            universalDirection = universalDirection == Direction.UP ? Direction.DOWN : Direction.UP;
-//        }
-
-
-
-        logger.info("FLOOR UP Q: for: "+ elevatorId + floorStopQueueUp);
-        logger.info("FLOOR DOWN Q: for: "+ elevatorId + floorStopQueueDown);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
 
             //If the current request matches the direction of the elevator
-            if(!floorStopQueue.contains(ert.getDestFloor())){
-                System.err.println("\n\nFLOORSTOPQ DOES NOT CONTAIN DEST FLOOR\n\n");
-            }
             int nextStop = -1;
             if (universalDirection == Direction.UP && !floorStopQueueUp.isEmpty()){
                 nextStop = floorStopQueueUp.get(0);
@@ -146,24 +128,7 @@ public class ElevatorSubsystem extends Thread {
             }
 
 
-//            if(dropOffsRemaining == 0){
-//                //Check closest floor in either direction
-//                int nextUp = MAX_LEVEL;
-//                int nextDown = 0;
-//                if(!floorStopQueueUp.isEmpty()){
-//                    nextUp = floorStopQueueUp.get(0);
-//                }
-//                if(!floorStopQueueDown.isEmpty()){
-//                    nextDown = floorStopQueueDown.get(0);
-//                }
-//                if(universalDirection == Direction.UP && Math.abs(nextUp - currentFloor) > (Math.abs(nextDown - currentFloor) + 1) ) {
-//                    universalDirection = Direction.DOWN;
-//                    notifyDirectionSubscribers();
-//                }else if (universalDirection == Direction.DOWN && Math.abs(nextDown - currentFloor) > (Math.abs(nextUp - currentFloor) + 1) ) {
-//                    universalDirection = Direction.UP;
-//                    notifyDirectionSubscribers();
-//                }
-//            }
+
 
             logger.info("CURRENT FLOOR: "+ currentFloor + " DIRECTION: "+ universalDirection + " NEXT STOP " + nextStop);
             if (!isFull() && currentFloor.equals(nextStop)) {
@@ -203,17 +168,12 @@ public class ElevatorSubsystem extends Thread {
                             workAssignment.setSignal(Signal.WORKING);
                         }
                     });
-//                    floorStopQueue.remove(0);
                     if (universalDirection == Direction.UP){
                         floorStopQueueUp.remove(0);
                     }else{
                         floorStopQueueDown.remove(0);
                     }
 
-                    logger.info("2 CURRENT FLOOR: "+ currentFloor + " DIRECTION: "+ universalDirection + " NEXT STOP " + nextStop);
-
-                    logger.info("2 FLOOR UP Q: for: "+ elevatorId + floorStopQueueUp);
-                    logger.info("2 FLOOR DOWN Q: for: "+ elevatorId + floorStopQueueDown);
 //                    allWorkAssignments.forEach(workAssignment -> {
 //                        if (workAssignment.getServiceFloor() == currentFloor) {
 //                            workAssignment.setPickupComplete();
@@ -291,19 +251,6 @@ public class ElevatorSubsystem extends Thread {
         }
         notifyMovingSubscribers(ElevatorListener.Moving.MOVING);
 
-        //ToDo Switch Direction logic here.
-        //If the elevator reaches the top floor, swap its direction to down
-//        if (currentFloor == MAX_LEVEL && universalDirection == Direction.UP){
-//            universalDirection = Direction.DOWN;
-//            notifyDirectionSubscribers();
-//        }
-//        //If the elevator reaches the bottom floor, swap its direction to up
-//        else if (currentFloor == 0 && universalDirection == Direction.DOWN){
-//            universalDirection = Direction.UP;
-//            notifyDirectionSubscribers();
-//        }
-
-
 
         if(currentFloor <= 1){
             universalDirection = Direction.UP;
@@ -314,35 +261,6 @@ public class ElevatorSubsystem extends Thread {
             notifyDirectionSubscribers();
         }
 
-//        if (universalDirection == Direction.UP){
-//            //if max level reached, switch direction
-//            if (currentFloor == MAX_LEVEL){
-//                universalDirection = Direction.DOWN;
-//                notifyDirectionSubscribers();
-//            }
-//            else if (floorStopQueue.isEmpty()){
-////                universalDirection = Direction.DOWN;
-////                notifyDirectionSubscribers();
-//
-//            } else if (floorStopQueue.get(0) < currentFloor){
-//                universalDirection = Direction.DOWN;
-//                notifyDirectionSubscribers();
-//            }
-//        }
-//        if (universalDirection == Direction.DOWN){
-//            //if max level reached, switch direction
-//            if (currentFloor == 0){
-//                universalDirection = Direction.UP;
-//                notifyDirectionSubscribers();
-//            }
-//            else if (floorStopQueue.isEmpty()){
-////                universalDirection = Direction.UP;
-////                notifyDirectionSubscribers();
-//            } else if (floorStopQueue.get(0) > currentFloor){
-//                universalDirection = Direction.UP;
-//                notifyDirectionSubscribers();
-//            }
-//        }
 
         // Delay for travel time between each floor. Catches hard faults
         try {

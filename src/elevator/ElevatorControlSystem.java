@@ -87,17 +87,6 @@ public class ElevatorControlSystem {
                     elevator.setDownFloorStopQueue(downFloorStopQueue);
 
 
-                    System.out.println("3 FLOOR UP Q: for: "+ upFloorStopQueue);
-                    System.out.println("3 FLOOR DOWN Q: for: "+ downFloorStopQueue);
-//                    if(newRequest.getDirection() == Direction.UP){
-////                        elevator.addUpFloorStop(newRequest.getDestinationFloor());
-//                        ArrayList<Integer> upFloorStopQueue = sharedState.getElevatorUpStopQueue(elevator.getElevatorId());
-//                        elevator.setUpFloorStopQueue(upFloorStopQueue);
-//                    } else {
-//                        ArrayList<Integer> downFloorStopQueue = sharedState.getElevatorDownStopQueue(elevator.getElevatorId());
-//                        elevator.setDownFloorStopQueue(downFloorStopQueue);
-//                    }
-
                     //Give the request to the elevator
                     elevator.addTrackedRequest(newRequest);
                     elevatorRequests.add(newRequest);
