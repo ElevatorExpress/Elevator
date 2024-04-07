@@ -47,12 +47,12 @@ public class ElevatorSubsystem extends Thread {
     private int capacity = 0;
     private final ElevatorControlSystem ecs;
     private boolean stopBit = false;
-    private final int MAX_PEOPLE = 101;
-    private final int FLOOR_TRAVEL_TIME = 1000;
-    private final int FLOOR_TRAVEL_FAULT_TIME = 2000;
-    private final int OPEN_CLOSE_DOORS = 300;
-    private final int OPEN_CLOSE_DOORS_FAULT = 500;
-    private final int PASSENGER_DELAY = 500;
+    private final int MAX_PEOPLE = 5;
+    private final int FLOOR_TRAVEL_TIME = 10000;
+    private final int FLOOR_TRAVEL_FAULT_TIME = 20000;
+    private final int OPEN_CLOSE_DOORS = 3000;
+    private final int OPEN_CLOSE_DOORS_FAULT = 5000;
+    private final int PASSENGER_DELAY = 5000;
     private int dropOffsRemaining = 0;
 
 
