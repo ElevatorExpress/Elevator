@@ -3,9 +3,7 @@ package scheduler;
 import elevator.ElevatorControlSystem;
 import elevator.ElevatorSubsystem;
 import floor.FloorInfoReader;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import scheduler.strategies.AllocationStrategy;
 import scheduler.strategies.LoadBalancedStrategy;
 import util.Direction;
@@ -29,14 +27,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SchedulerTest {
-    private Scheduler scheduler;
-    private DatagramSocket outSocketMock;
-    private MessageBuffer floorMessageBufferMock;
-    private AllocationStrategy allocationStrategyMock;
+    private static Scheduler scheduler;
+    private static DatagramSocket outSocketMock;
+    private static MessageBuffer floorMessageBufferMock;
+    private static AllocationStrategy allocationStrategyMock;
     private SubSystemSharedState sharedStateMock;
 
-    @BeforeEach
-    void setUp() throws Exception {
+    @BeforeAll
+    static void setUp() throws Exception {
         outSocketMock = new DatagramSocket();
         SubSystemSharedState sharedState = new SubSystemSharedState();
         InetSocketAddress inetSocketAddress = new InetSocketAddress(InetAddress.getLocalHost(), 8080);
@@ -45,6 +43,12 @@ class SchedulerTest {
         scheduler = new Scheduler(InetAddress.getLocalHost(), 8080, 8082, allocationStrategyMock, sharedState);
         sharedState.setScheduler(scheduler);
         scheduler.startSystem();
+    }
+
+    @AfterAll
+    static void tearDown() {
+        outSocketMock.close();
+
     }
 
     private void setPrivateField(Object targetObject, String fieldName, Object value) throws NoSuchFieldException, IllegalAccessException {
@@ -78,14 +82,12 @@ class SchedulerTest {
         scheduler.getMessageBuffer().getMessageBuffer().put(m1);
         scheduler.getMessageBuffer().getMessageBuffer().put(m2);
 
+        Thread.sleep(20000);
         boolean updated = scheduler.handleECSUpdate();
 
         assertTrue(updated);
         assertEquals(2, scheduler.getSharedState().getWorkAssignments().get(1).size());
         assertEquals(1, scheduler.getSharedState().getElevatorStates().size());
-
-
-
     }
 
     @Test

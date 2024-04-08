@@ -12,9 +12,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 class ElevatorSubsystemTest {
@@ -54,6 +52,8 @@ class ElevatorSubsystemTest {
 
         for (WorkAssignment workAssignment : elevatorSharedObject.getWorkAssignments().get(1)) {
             testElevator.addTrackedRequest(workAssignment);
+            testElevator.setFloorStopQueue(new ArrayList<>(List.of(1,2)));
+            testElevator.setUpFloorStopQueue(new ArrayList<>(List.of(1,2)));
         }
         Assertions.assertNotEquals(testElevator.getElevatorInfo().getStateSignal(), Signal.IDLE);
         while (true) {
