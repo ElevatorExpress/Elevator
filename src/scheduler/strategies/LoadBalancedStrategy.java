@@ -35,12 +35,16 @@ public class LoadBalancedStrategy extends AllocationStrategy{
         allocateImproved(workAssignment);
     }
 
-
-
-
+    /**
+     *  determines the floor stops
+     * @param upfloorStops the up floor stops
+     * @param downFloorStops the down floor stops
+     * @param workAssignment the work assignment
+     * @param elevatorStateUpdate the elevator state
+     * @param retId The request id
+     * @throws RemoteException
+     */
     public void determineFloorStops(ArrayList<Integer> upfloorStops, ArrayList<Integer> downFloorStops, WorkAssignment workAssignment, ElevatorStateUpdate elevatorStateUpdate, int retId) throws RemoteException {
-
-
         Direction direction = elevatorStateUpdate.getDirection();
         int curFloor = elevatorStateUpdate.getFloor();
 
@@ -106,6 +110,14 @@ public class LoadBalancedStrategy extends AllocationStrategy{
             sharedState.setElevatorStopQueue(retId, downFloorStops);
         }
     }
+
+    /**
+     * Checking overlap over the requests
+     * @param workAssignment The work assignment
+     * @param workAssignments The list of all work assignments
+     * @param elevatorStates the elevators states
+     * @return integer representing elevator id
+     */
     private int checkFullOverLap(WorkAssignment workAssignment, HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments, HashMap<Integer,ElevatorStateUpdate> elevatorStates){
         for (int elevatorId : elevatorStates.keySet()) {
             ConcurrentLinkedDeque<WorkAssignment> elevatorWorkAssignments = workAssignments.get(elevatorId);
@@ -139,7 +151,6 @@ public class LoadBalancedStrategy extends AllocationStrategy{
 
             }
 
-
             if (direction == Direction.UP) {
                 if (workAssignment.getDestinationFloor() > curFloor && workAssignment.getDestinationFloor() < maxFloor) {
                     sharedState.addWorkAssignment(elevatorId, workAssignment);
@@ -156,7 +167,13 @@ public class LoadBalancedStrategy extends AllocationStrategy{
         return -1;
     }
 
-
+    /**
+     * Check the partial overlap
+     * @param workAssignment The work assignment
+     * @param workAssignments The list of all work assignment
+     * @param elevatorStates The elevators states
+     * @return The integers representing elevator id
+     */
     private int checkPartialOverlap(WorkAssignment workAssignment, HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments, HashMap<Integer,ElevatorStateUpdate> elevatorStates){
         for (int elevatorId : elevatorStates.keySet()) {
             ConcurrentLinkedDeque<WorkAssignment> elevatorWorkAssignments = workAssignments.get(elevatorId);
@@ -204,8 +221,13 @@ public class LoadBalancedStrategy extends AllocationStrategy{
         return -1;
     }
 
-
-
+    /**
+     * Assigning to the smallest elevator
+     * @param workAssignment The work assignment
+     * @param workAssignments The list of work assignments
+     * @param elevatorStates The elevator states
+     * @return The integer representing the elevator assigned to
+     */
     private int assignToElevatorWithSmallestQueue(WorkAssignment workAssignment, HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments, HashMap<Integer,ElevatorStateUpdate> elevatorStates){
         int min = Integer.MAX_VALUE;
         int elevatorId = -1;
@@ -219,8 +241,13 @@ public class LoadBalancedStrategy extends AllocationStrategy{
         return elevatorId;
     }
 
+    /**
+     * The allocation algorithm
+     * @param workAssignment The work assignment
+     * @return The list of stops
+     * @throws RemoteException
+     */
     public ArrayList<ArrayList<Integer>> allocateImproved(WorkAssignment workAssignment) throws RemoteException {
-        System.out.println("ALLOCATE: " + workAssignment);
         HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments = sharedState.getWorkAssignments();
         HashMap<Integer, ElevatorStateUpdate> elevatorStates = sharedState.getElevatorStates();
         ArrayList<Integer> floorStops = new ArrayList<>();
@@ -244,91 +271,8 @@ public class LoadBalancedStrategy extends AllocationStrategy{
         ret.add(downFloorStops);
         return ret;
 
-//        floorStops = determineFloorStops(prevFloorStopsCopy, workAssignment, elevatorStates.get(retId));
-//        if (workAssignment.getDirection() == Direction.UP) {
-//
-//            if (workAssignment.getServiceFloor() > curFloor || direction == Direction.DOWN) {
-//                int index = 0;
-//                while (index < upfloorStops.size()) {
-//                    if (workAssignment.getServiceFloor() < upfloorStops.get(index)) {
-//                        upfloorStops.add(index, workAssignment.getServiceFloor());
-//                        break;
-//                    }
-//                    index++;
-//                }
-//                if (index == upfloorStops.size()) {
-//                    upfloorStops.add(workAssignment.getServiceFloor());
-//                }
-//                while (index < upfloorStops.size()) {
-//                    if (workAssignment.getDestinationFloor() < upfloorStops.get(index)) {
-//                        upfloorStops.add(index, workAssignment.getDestinationFloor());
-//                        break;
-//                    }
-//                    index++;
-//                }
-//                if (index == upfloorStops.size()) {
-//                    upfloorStops.add(workAssignment.getDestinationFloor());
-//                }
-//            } else {
-//                upfloorStops.add(workAssignment.getServiceFloor());
-//                upfloorStops.add(workAssignment.getDestinationFloor());
-//            }
-//            sharedState.setElevatorUpStopQueue(retId, upfloorStops);
-//            sharedState.setElevatorStopQueue(retId, upfloorStops);
-//            return upfloorStops;
-//        } else {
-//            if (workAssignment.getServiceFloor() < curFloor || direction == Direction.UP) {
-//                int index = 0;
-//                while (index < downFloorStops.size()) {
-//                    if (workAssignment.getServiceFloor() > downFloorStops.get(index)) {
-//                        downFloorStops.add(index, workAssignment.getServiceFloor());
-//                        break;
-//                    }
-//                    index++;
-//                }
-//                if (index == downFloorStops.size()) {
-//                    downFloorStops.add(workAssignment.getServiceFloor());
-//                }
-//                while (index < downFloorStops.size()) {
-//                    if (workAssignment.getDestinationFloor() > downFloorStops.get(index)) {
-//                        downFloorStops.add(index, workAssignment.getDestinationFloor());
-//                        break;
-//                    }
-//                    index++;
-//                }
-//                if (index == downFloorStops.size()) {
-//                    downFloorStops.add(workAssignment.getDestinationFloor());
-//                }
-//            }else{
-//                downFloorStops.add(workAssignment.getServiceFloor());
-//                downFloorStops.add(workAssignment.getDestinationFloor());
-//            }
-//            sharedState.setElevatorDownStopQueue(retId, downFloorStops);
-//            sharedState.setElevatorStopQueue(retId, downFloorStops);
-//            return downFloorStops;
-//        }
-//        sharedState.setElevatorStopQueue(retId, floorStops);
-//        return floorStops;
-
     }
 
 
-    /**
-     * Checks if the given elevator is assigned to the smallest work assignment
-     * @param elevatorId The elevator to check
-     * @param workAssignments The assignments to check from
-     * @return True if the elevator is assigned to the smallest work assignment
-     */
-    public boolean smallestAssignment(int elevatorId, HashMap<Integer, ConcurrentLinkedDeque<WorkAssignment>> workAssignments) {
-        int id = elevatorId;
-        int min = workAssignments.get(elevatorId).size();
-        for (int eleId : workAssignments.keySet()) {
-            if (workAssignments.get(eleId).size() <= min) {
-                min = workAssignments.get(eleId).size();
-                id = eleId;
-            }
-        }
-        return id == elevatorId;
-    }
 }
 

@@ -11,10 +11,16 @@ Files included:
 
 TO RUN:
 JDK version: 21
+JavaFX: 22
 ensure the working dir is:
+     Setup JavaFx:
+     Download: https://gluonhq.com/products/javafx/
+     Download the link above. Unzip the downloaded file. Open intellij project structure and add library. Point to the
+     lib directory in the unzipped directory.
+
     <Path>/Elevator and hit run on the run configuration named "Scheduler" in the run configuration dropdown menu,
-     after that hit run on the run configuration named "Floor" in the run configuration dropdown menu, finally hit
-     run on the run configuration named "Elevator" in the run configuration dropdown menu. This should start the system.
+     after that hit run on the run configuration named "Elevator" in the run configuration dropdown menu, finally hit
+     run on the run configuration named "Floor" in the run configuration dropdown menu. This should start the system.
 
      Tests can be found under ./test. They can be run by clicking the Test run configuration named "All in Elevator", or
      can be run from the individual files themselves.

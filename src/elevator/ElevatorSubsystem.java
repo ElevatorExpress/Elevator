@@ -47,12 +47,12 @@ public class ElevatorSubsystem extends Thread {
     private int capacity = 0;
     private final ElevatorControlSystem ecs;
     private boolean stopBit = false;
-    private final int MAX_PEOPLE = 101;
-    private final int FLOOR_TRAVEL_TIME = 1000;
-    private final int FLOOR_TRAVEL_FAULT_TIME = 2000;
-    private final int OPEN_CLOSE_DOORS = 300;
-    private final int OPEN_CLOSE_DOORS_FAULT = 500;
-    private final int PASSENGER_DELAY = 500;
+    private final int MAX_PEOPLE = 5;
+    private final int FLOOR_TRAVEL_TIME = 10000;
+    private final int FLOOR_TRAVEL_FAULT_TIME = 20000;
+    private final int OPEN_CLOSE_DOORS = 3000;
+    private final int OPEN_CLOSE_DOORS_FAULT = 5000;
+    private final int PASSENGER_DELAY = 5000;
     private int dropOffsRemaining = 0;
 
 
@@ -128,9 +128,6 @@ public class ElevatorSubsystem extends Thread {
             }
 
 
-
-
-            logger.info("CURRENT FLOOR: "+ currentFloor + " DIRECTION: "+ universalDirection + " NEXT STOP " + nextStop);
             if (!isFull() && currentFloor.equals(nextStop)) {
 
                 //If the elevator is at the floor it is expecting to pick up passengers
@@ -173,12 +170,6 @@ public class ElevatorSubsystem extends Thread {
                         floorStopQueueDown.remove(0);
                     }
 
-//                    allWorkAssignments.forEach(workAssignment -> {
-//                        if (workAssignment.getServiceFloor() == currentFloor) {
-//                            workAssignment.setPickupComplete();
-//                            workAssignment.setSignal(Signal.WORKING);
-//                        }
-//                    });
 
                     //Send state update
                     ElevatorStateUpdate esu = new ElevatorStateUpdate(elevatorId, currentFloor, universalDirection, allWorkAssignments, isFull());
@@ -225,7 +216,9 @@ public class ElevatorSubsystem extends Thread {
                             workAssignment.setSignal(Signal.DONE);
                         }
                     });
-                    floorStopQueue.remove(0);
+                    if (!floorStopQueue.isEmpty()) {
+                        floorStopQueue.remove(0);
+                    }
                     if (universalDirection == Direction.UP){
                         floorStopQueueUp.remove(0);
                     }else{
@@ -399,8 +392,23 @@ public class ElevatorSubsystem extends Thread {
     public void receiveRequestEvent(){
         currentState = currentState.handleReceiveRequest();
     }
+
+    /**
+     * Gets the elevator state
+     * @return elevator state
+     */
     public synchronized ElevatorStateUpdate getElevatorInfo() { return elevatorInfo; }
+
+    /**
+     * Sets the elevator state
+     * @param info the elevator state
+     */
     public synchronized void setElevatorInfo(ElevatorStateUpdate info) { elevatorInfo = info; }
+
+    /**
+     * Sets the elevator state signal
+     * @param s the signal
+     */
     public synchronized void setElevatorInfoSignal(Signal s) {elevatorInfo.setStateSignal(s);}
 
     /**
@@ -466,15 +474,34 @@ public class ElevatorSubsystem extends Thread {
         );
     }
 
+    /**
+     * Sets the queue of stops
+     * @param floorStopQueue the queue of floor stops
+     */
     public void setFloorStopQueue (ArrayList<Integer> floorStopQueue) {
         this.floorStopQueue = floorStopQueue;
     }
+
+    /**
+     * gets the queue of stops
+     * @return the queue
+     */
     public ArrayList<Integer> getFloorStopQueue() {
         return floorStopQueue;
     }
+
+    /**
+     * gets the queue of up stops
+     * @return the queue of up stops
+     */
     public ArrayList<Integer> getFloorStopQueueUp() {
         return floorStopQueueUp;
     }
+
+    /**
+     * gets the queue of down stops
+     * @return the queue of down stops
+     */
     public ArrayList<Integer> getFloorStopQueueDown() {
         return floorStopQueueDown;
     }
@@ -513,10 +540,19 @@ public class ElevatorSubsystem extends Thread {
         elevatorListeners.add(elevatorListener);
     }
 
+    /**
+     * Sets the queue of up stops
+     * @param upFloorStopQueue the up floor queue
+     */
+
     public void setUpFloorStopQueue(ArrayList<Integer> upFloorStopQueue) {
         floorStopQueueUp = upFloorStopQueue;
     }
 
+    /**
+     * Sets the queue of down stops
+     * @param downFloorStopQueue the down floor queue
+     */
     public void setDownFloorStopQueue(ArrayList<Integer> downFloorStopQueue) {
         floorStopQueueDown = downFloorStopQueue;
     }

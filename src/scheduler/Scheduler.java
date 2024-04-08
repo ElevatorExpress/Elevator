@@ -101,7 +101,6 @@ public class Scheduler {
                     //Update the shared object with new work assignments
                     logger.info("Received Request: " + workAssignment);
                     allocationStrategy.allocate(workAssignment);
-                    System.out.println("SCHEDULER : " + workAssignment);
                 }
                 //Signal that the Scheduler is done reading
                 doneServing();
@@ -143,6 +142,10 @@ public class Scheduler {
         return updated;
     }
 
+    /**
+     * gets the shared state object
+     * @return The shared object
+     */
     public SubSystemSharedState getSharedState() {
         return sharedState;
     }
@@ -154,6 +157,10 @@ public class Scheduler {
         currentState = currentState.handleDoneReadingRequest();
     }
 
+    /**
+     * Gets the message buffer
+     * @return The message buffer
+     */
     public MessageBuffer getMessageBuffer() {
         return floorMessageBuffer;
     }
@@ -171,7 +178,6 @@ public class Scheduler {
      */
     public boolean handleECSEmergency(ArrayList<WorkAssignment> workRequests) throws RemoteException {
         for (WorkAssignment workRequest : workRequests) {
-//            System.out.println("SCHEDULER : " + workRequest);
             allocationStrategy.allocate(workRequest);
         }
         return false;

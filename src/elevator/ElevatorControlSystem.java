@@ -149,6 +149,10 @@ public class ElevatorControlSystem {
         AssignRequest();
     }
 
+    /**
+     * Elevator listener subscribing to elevator
+     * @param elevatorListener The elevator listener
+     */
     public void subscribeElevatorEvent(ElevatorListener elevatorListener){
         elevators.forEach(e -> e.subscribe(elevatorListener));
     }
