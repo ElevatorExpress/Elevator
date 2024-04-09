@@ -19,3 +19,10 @@ ensure the working dir is:
      Tests can be found under ./test. They can be run by clicking the Test run configuration named "All in Elevator", or
      can be run from the individual files themselves.
 
+     Java FX is required to run this project. Please download the latest version from Gluon for your platform and add it
+     to your intelliJ project by clicking File -> Project Structure -> Project Settings -> Libraries -> +. Then Click on "Java" from
+     the drop down menu then select the location "lib" directory of the JavaFx installation.
+
+     Everything should run from here, if "Elevator" run config is not running please check the VM option paths are correct its
+     run config options.
+
