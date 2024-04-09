@@ -121,7 +121,7 @@ public class FloorSystem {
      * Close requests once they are fulfilled.
      */
     public void receiveMessage() {
-        while (!requestsBuffer.isEmpty()) {
+        while (true) {
             //Grab all the messages
             SerializableMessage[] receivedMessages = new SerializableMessage[0];
             try {

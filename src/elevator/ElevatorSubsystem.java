@@ -79,9 +79,9 @@ public class ElevatorSubsystem extends Thread {
         ArrayList<ElevatorRequestTracker> dummyTrackRequest = new ArrayList<>(trackRequest);
         for (ElevatorRequestTracker ert : dummyTrackRequest) {
             //If the current request matches the direction of the elevator
-            if (!isFull() && ert.getDirection() == universalDirection) {
+            if (ert.getDirection() == universalDirection) {
                 //If the elevator is at the floor it is expecting to pick up passengers
-                if (ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
+                if (!isFull() && ert.getSourceFloor() == currentFloor && ert.getStatus() == RequestStatus.PICKING) {
                     int errorBit = ert.getRequest().getErrorBit();
                     //If an error was injected
                     if (errorBit == 2) {
